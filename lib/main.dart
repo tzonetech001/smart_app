@@ -1,8 +1,7 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // import 'package:firebase_messaging/firebase_messaging.dart';
-import 'firebase_options.dart';
+import 'services/firebase_service.dart';
 import 'services/auth_service.dart';
 // import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
@@ -16,14 +15,12 @@ import 'utils/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+
+  await FirebaseService.initialize();
+
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   // await NotificationService.initialize();
-  
+
   runApp(
     MultiProvider(
       providers: [
