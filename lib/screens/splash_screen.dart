@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'admin/admin_dashboard.dart';
-import 'entrepreneur/entrepreneur_dashboard.dart';
+import 'enterpreneur/entrepreneur_dashboard.dart';
 import 'customer/customer_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToNextScreen() {
     final authService = Provider.of<AuthService>(context, listen: false);
-    
+
     if (authService.currentUser != null) {
       _redirectBasedOnRole(authService.currentUser!.role);
     } else {
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
       default:
         destination = const CustomerDashboard();
     }
-    
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => destination),

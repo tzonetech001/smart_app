@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'admin/admin_dashboard.dart';
-import 'entrepreneur/entrepreneur_dashboard.dart';
+import 'enterpreneur/entrepreneur_dashboard.dart';
 import 'customer/customer_dashboard.dart';
 import '../utils/validators.dart';
 import '../utils/constants.dart';
@@ -20,22 +20,25 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  
+
   // Demo credentials
   final Map<String, Map<String, String>> demoCredentials = {
     'admin': {'email': 'admin@gmail.com', 'password': '123456'},
-    'entrepreneur': {'email': 'zabibusaidy3@gmail.com', 'password': 'zabibu@2021'},
+    'entrepreneur': {
+      'email': 'zabibusaidy3@gmail.com',
+      'password': 'zabibu@2021'
+    },
   };
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
     bool success = await authService.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
-    
+
     if (success && mounted) {
       _redirectBasedOnRole(authService.currentUser!.role);
     } else if (mounted) {
@@ -60,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
       default:
         destination = const CustomerDashboard();
     }
-    
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => destination),
@@ -129,7 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelText: 'Email',
                             prefixIcon: Icon(Icons.email),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
                           validator: Validators.email,
@@ -143,7 +147,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: const Icon(Icons.lock),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -152,7 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                             border: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
                           obscureText: _obscurePassword,
@@ -178,7 +185,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   );
                                 }
@@ -199,7 +207,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                  MaterialPageRoute(
+                                      builder: (_) => const RegisterScreen()),
                                 );
                               },
                               child: const Text('Register'),
@@ -219,7 +228,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: OutlinedButton(
                                 onPressed: () => _fillDemoCredentials('admin'),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFF667eea)),
+                                  side: const BorderSide(
+                                      color: Color(0xFF667eea)),
                                 ),
                                 child: const Text('Admin'),
                               ),
@@ -227,9 +237,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => _fillDemoCredentials('entrepreneur'),
+                                onPressed: () =>
+                                    _fillDemoCredentials('entrepreneur'),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFF667eea)),
+                                  side: const BorderSide(
+                                      color: Color(0xFF667eea)),
                                 ),
                                 child: const Text('Entrepreneur'),
                               ),
