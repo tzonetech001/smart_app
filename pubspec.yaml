@@ -9,6 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   
+<<<<<<< HEAD
   # Firebase - Updated to latest compatible versions
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
@@ -21,11 +22,27 @@ dependencies:
   cached_network_image: ^3.4.1
   carousel_slider: ^5.0.0
   fl_chart: ^0.69.2
+=======
+  # Firebase - Use compatible versions
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.3.0
+  firebase_messaging: ^15.1.0
+  
+  # UI
+  flutter_staggered_grid_view: ^0.7.0
+  cached_network_image: ^3.4.0
+  carousel_slider: ^4.2.1
+  fl_chart: ^0.68.0
+  shimmer: ^3.0.0
+>>>>>>> 953d59c647f76cb9b21c11e9995f0a624b1679ab
   
   # State Management
   provider: ^6.1.2
   
   # HTTP & API
+<<<<<<< HEAD
   http: ^1.3.0
   
   # Image Picker
@@ -34,6 +51,17 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   shared_preferences: ^2.5.2
+=======
+  http: ^1.2.0
+  
+  # Image Picker
+  image_picker: ^1.1.0
+  
+  # Utilities
+  intl: ^0.19.0
+  shared_preferences: ^2.3.0
+  url_launcher: ^6.3.0
+>>>>>>> 953d59c647f76cb9b21c11e9995f0a624b1679ab
 
 dev_dependencies:
   flutter_test:
