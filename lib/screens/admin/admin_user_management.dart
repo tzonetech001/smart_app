@@ -115,7 +115,8 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                 }).toList();
               }
               
-              // Apply search              if (_searchQuery.isNotEmpty) {
+              // Apply search
+              if (_searchQuery.isNotEmpty) {
                 users = users.where((user) {
                   return user.fullName.toLowerCase().contains(_searchQuery) ||
                          user.email.toLowerCase().contains(_searchQuery);

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/ai_service.dart';
+import '../../models/product_model.dart';
 import 'add_product_screen.dart';
 import 'edit_product_screen.dart';
 import 'product_analytics.dart';

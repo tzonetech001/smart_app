@@ -406,7 +406,10 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           builder: (context, productSnapshot) {
             final totalProducts = productSnapshot.hasData ? productSnapshot.data!.docs.length : 0;
             final totalLikes = productSnapshot.hasData
-                ? productSnapshot.data!.docs.fold<int>(0, (sum, doc) => sum + (doc.get('likes') ?? 0))
+                ? productSnapshot.data!.docs.fold<int>(0, (sum, doc) {
+                    final likes = doc.get('likes');
+                    return sum + (likes is int ? likes : (likes is num ? likes.toInt() : 0));
+                  })
                 : 0;
             
             return GridView(

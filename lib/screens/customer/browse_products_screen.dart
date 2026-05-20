@@ -97,7 +97,7 @@ class _BrowseProductsScreenState extends State<BrowseProductsScreen> {
         // Products Grid
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _buildQuery(),
+            stream: _buildQuery().snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));

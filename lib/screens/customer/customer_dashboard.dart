@@ -442,7 +442,7 @@ class _CategoryCard extends StatelessWidget {
   IconData _getCategoryIcon(ProductCategory category) {
     switch (category) {
       case ProductCategory.electronics:
-        return Icons.electronics;
+        return Icons.electrical_services;
       case ProductCategory.fashion:
         return Icons.checkroom;
       case ProductCategory.food:
