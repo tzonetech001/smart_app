@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "969037115589",
+    "project_id": "business-app-36986",
+    "storage_bucket": "business-app-36986.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969037115589:android:fd71ba0973acb4278d40ac",
+        "android_client_info": {
+          "package_name": "com.example.business_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdIeBPCL2_jDt_xRY9teFS_id7fBD7NQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969037115589:android:54931ab88d4bfd098d40ac",
+        "android_client_info": {
+          "package_name": "com.example.smart3_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdIeBPCL2_jDt_xRY9teFS_id7fBD7NQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
