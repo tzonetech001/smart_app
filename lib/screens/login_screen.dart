@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../models/user_model.dart';
 import 'register_screen.dart';
 import 'admin/admin_dashboard.dart';
 import 'enterpreneur/entrepreneur_dashboard.dart';
@@ -51,13 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _redirectBasedOnRole(role) {
+  void _redirectBasedOnRole(UserRole role) {
     Widget destination;
     switch (role) {
-      case 'admin':
+      case UserRole.admin:
         destination = const AdminDashboard();
         break;
-      case 'entrepreneur':
+      case UserRole.entrepreneur:
         destination = const EntrepreneurDashboard();
         break;
       default:
