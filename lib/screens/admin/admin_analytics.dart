@@ -33,7 +33,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
               return Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: ChoiceChip(
-                  label: Text(tf['label']!),
+                  label: Text(tf['label']!, style: const TextStyle(fontSize: 12)),
                   selected: _selectedTimeframe == tf['value'],
                   onSelected: (selected) {
                     if (selected) {
@@ -42,7 +42,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                       });
                     }
                   },
-                  selectedColor: const Color(0xFF667eea).withOpacity(0.2),
+                  selectedColor: const Color(0xFF59F797).withOpacity(0.2),
                 ),
               );
             }).toList(),
@@ -53,7 +53,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           // Revenue Chart
           const Text(
             'Revenue Overview',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -66,11 +66,11 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           // Category Distribution
           const Text(
             'Products by Category',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 200,
+            height: 250,
             child: _buildCategoryChart(),
           ),
           
@@ -79,7 +79,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           // Top Performing Products
           const Text(
             'Top Performing Products',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _buildTopProducts(),
@@ -89,7 +89,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           // User Growth
           const Text(
             'User Growth',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -102,7 +102,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
           // Key Metrics
           const Text(
             'Key Metrics',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _buildKeyMetrics(),
@@ -126,7 +126,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                   showTitles: true,
                   reservedSize: 40,
                   getTitlesWidget: (value, meta) {
-                    return Text('\$${value.toInt()}');
+                    return Text('\$${value.toInt()}', style: const TextStyle(fontSize: 10));
                   },
                 ),
               ),
@@ -134,7 +134,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                 sideTitles: SideTitles(
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
-                    return Text(revenueData[value.toInt()]['label']);
+                    return Text(revenueData[value.toInt()]['label'], style: const TextStyle(fontSize: 10));
                   },
                 ),
               ),
@@ -148,12 +148,12 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                   return FlSpot(entry.key.toDouble(), entry.value['value']);
                 }).toList(),
                 isCurved: true,
-                color: const Color(0xFF667eea),
+                color: const Color(0xFF59F797),
                 barWidth: 3,
                 dotData: FlDotData(show: true),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  color: const Color(0xFF59F797).withOpacity(0.1),
                 ),
               ),
             ],
@@ -164,7 +164,6 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
   }
 
   List<Map<String, dynamic>> _getRevenueData() {
-    // Sample revenue data
     if (_selectedTimeframe == 'week') {
       return [
         {'label': 'Mon', 'value': 1250},
@@ -214,7 +213,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                           color: _getCategoryColor(entry.key),
                           radius: 60,
                           titleStyle: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -232,15 +231,15 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 12,
-                          height: 12,
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(
                             color: _getCategoryColor(entry.key),
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text('${entry.key}: ${entry.value}'),
+                        Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 10)),
                       ],
                     );
                   }).toList(),
@@ -267,8 +266,8 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
 
   Color _getCategoryColor(String category) {
     final colors = [
-      const Color(0xFF667eea),
-      const Color(0xFF764ba2),
+      const Color(0xFF59F797),
+      const Color(0xFF3BC77A),
       Colors.green,
       Colors.orange,
       Colors.red,
@@ -307,17 +306,14 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFF667eea),
-                  child: Text('${index + 1}'),
+                  backgroundColor: const Color(0xFF59F797),
+                  child: Text('${index + 1}', style: const TextStyle(fontSize: 12)),
                 ),
-                title: Text(product.get('productName')),
-                subtitle: Text('${product.get('likes')} likes • ${product.get('views')} views'),
+                title: Text(product.get('productName'), style: const TextStyle(fontSize: 12)),
+                subtitle: Text('${product.get('likes')} likes • ${product.get('views')} views', style: const TextStyle(fontSize: 10)),
                 trailing: Text(
                   '\$${product.get('price').toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF667eea),
-                  ),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
                 ),
               ),
             );
@@ -338,13 +334,15 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
             gridData: FlGridData(show: true),
             titlesData: FlTitlesData(
               leftTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (value, meta) {
+                  return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
+                }),
               ),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
-                    return Text(growthData[value.toInt()]['label']);
+                    return Text(growthData[value.toInt()]['label'], style: const TextStyle(fontSize: 10));
                   },
                 ),
               ),
@@ -358,7 +356,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                 barRods: [
                   BarChartRodData(
                     toY: entry.value['value'].toDouble(),
-                    color: const Color(0xFF667eea),
+                    color: const Color(0xFF59F797),
                     width: 20,
                   ),
                 ],
@@ -422,9 +420,9 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
                 childAspectRatio: 1.5,
               ),
               children: [
-                _buildMetricCard('Total Users', totalUsers.toString(), Icons.people, Colors.blue),
-                _buildMetricCard('Entrepreneurs', entrepreneurs.toString(), Icons.business, Colors.orange),
-                _buildMetricCard('Total Products', totalProducts.toString(), Icons.inventory, Colors.green),
+                _buildMetricCard('Total Users', totalUsers.toString(), Icons.people, const Color(0xFF59F797)),
+                _buildMetricCard('Entrepreneurs', entrepreneurs.toString(), Icons.business, const Color(0xFF59F797)),
+                _buildMetricCard('Total Products', totalProducts.toString(), Icons.inventory, const Color(0xFF59F797)),
                 _buildMetricCard('Total Likes', totalLikes.toString(), Icons.favorite, Colors.red),
               ],
             );
@@ -441,12 +439,12 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: color),
+            Icon(icon, size: 28, color: color),
             const SizedBox(height: 8),
             Text(
               value,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -454,7 +452,7 @@ class _AdminAnalyticsState extends State<AdminAnalytics> {
             const SizedBox(height: 4),
             Text(
               title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
