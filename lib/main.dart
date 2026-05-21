@@ -1,26 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
-import 'services/firebase_service.dart';
+import 'firebase_options.dart';
 import 'services/auth_service.dart';
-// import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/enterpreneur/entrepreneur_dashboard.dart';
+import 'screens/customer/customer_dashboard.dart';
 import 'utils/theme.dart';
-
-// @pragma('vm:entry-point')
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   await Firebase.initializeApp();
-//   await NotificationService.initialize();
-// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await FirebaseService.initialize();
-
-  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  // await NotificationService.initialize();
-
+  
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(
     MultiProvider(
       providers: [
@@ -40,7 +37,15 @@ class MyApp extends StatelessWidget {
       title: 'Smart Business Analytics',
       theme: appTheme,
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/admin': (context) => const AdminDashboard(),
+        '/entrepreneur': (context) => const EntrepreneurDashboard(),
+        '/customer': (context) => const CustomerDashboard(),
+      },
     );
   }
 }

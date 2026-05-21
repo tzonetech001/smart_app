@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../../models/product_model.dart';
+import '../../models/user_model.dart';
 import 'admin_user_management.dart';
 import 'admin_product_management.dart';
 import 'admin_analytics.dart';
@@ -26,6 +28,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     {'icon': Icons.people, 'title': 'Manage Users', 'page': const AdminUserManagement()},
     {'icon': Icons.inventory, 'title': 'Manage Products', 'page': const AdminProductManagement()},
     {'icon': Icons.favorite, 'title': 'Customer Reacts', 'page': const AdminCustomerReacts()},
+    {'icon': Icons.analytics, 'title': 'Analytics', 'page': const AdminAnalytics()},
     {'icon': Icons.person, 'title': 'My Profile', 'page': const ProfilePage()},
   ];
 
@@ -34,6 +37,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     'Manage Users',
     'Manage Products',
     'Customer Reacts',
+    'Analytics',
     'My Profile',
   ];
 
@@ -56,6 +60,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutDialog(),
+            tooltip: 'Logout',
           ),
         ],
       ),
@@ -72,26 +77,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         selectedItemColor: const Color(0xFF59F797),
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Users',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Reacts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Products'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Reacts'),
+          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Stats'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -230,7 +221,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-// Keep the existing _AdminHomeScreen class but update font sizes
+// Admin Home Screen
 class _AdminHomeScreen extends StatelessWidget {
   const _AdminHomeScreen();
 
@@ -241,33 +232,66 @@ class _AdminHomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Welcome, Admin',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          // Welcome Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Welcome, Administrator!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Here\'s what\'s happening with your platform today',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                // Quick date info
+                Text(
+                  _getCurrentDate(),
+                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Here\'s what\'s happening with your business today',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          
           const SizedBox(height: 24),
           
           // Stats Cards
+          const Text(
+            'Overview',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('users').snapshots(),
             builder: (context, userSnapshot) {
               int totalUsers = userSnapshot.hasData ? userSnapshot.data!.docs.length : 0;
+              int totalEntrepreneurs = 0;
+              if (userSnapshot.hasData) {
+                totalEntrepreneurs = userSnapshot.data!.docs.where((doc) {
+                  return doc.get('role') == 'entrepreneur';
+                }).length;
+              }
               
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('products').snapshots(),
                 builder: (context, productSnapshot) {
                   int totalProducts = productSnapshot.hasData ? productSnapshot.data!.docs.length : 0;
-                  
-                  int totalEntrepreneurs = 0;
-                  if (userSnapshot.hasData) {
-                    totalEntrepreneurs = userSnapshot.data!.docs.where((doc) {
-                      return doc.get('role') == 'entrepreneur';
-                    }).length;
+                  int totalLikes = 0;
+                  if (productSnapshot.hasData) {
+                    totalLikes = productSnapshot.data!.docs.fold<int>(0, (sum, doc) {
+                      final likes = doc.get('likes');
+                      return sum + (likes is int ? likes : 0);
+                    });
                   }
                   
                   return GridView(
@@ -280,10 +304,10 @@ class _AdminHomeScreen extends StatelessWidget {
                       childAspectRatio: 1.5,
                     ),
                     children: [
-                      _StatsCard(title: 'Total Users', value: totalUsers.toString(), icon: Icons.people, color: const Color(0xFF59F797)),
+                      _StatsCard(title: 'Total Users', value: totalUsers.toString(), icon: Icons.people, color: Colors.blue),
+                      _StatsCard(title: 'Entrepreneurs', value: totalEntrepreneurs.toString(), icon: Icons.business, color: Colors.orange),
                       _StatsCard(title: 'Total Products', value: totalProducts.toString(), icon: Icons.inventory, color: const Color(0xFF59F797)),
-                      _StatsCard(title: 'Entrepreneurs', value: totalEntrepreneurs.toString(), icon: Icons.business, color: const Color(0xFF59F797)),
-                      _StatsCard(title: 'Active Products', value: '${totalProducts ~/ 2}', icon: Icons.check_circle, color: const Color(0xFF59F797)),
+                      _StatsCard(title: 'Total Likes', value: totalLikes.toString(), icon: Icons.favorite, color: Colors.red),
                     ],
                   );
                 },
@@ -293,16 +317,16 @@ class _AdminHomeScreen extends StatelessWidget {
           
           const SizedBox(height: 24),
           
-          // Trending Products
+          // Recent Products
           const Text(
-            'Trending Products',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            'Recent Products',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('products')
-                .orderBy('likes', descending: true)
+                .orderBy('createdAt', descending: true)
                 .limit(5)
                 .snapshots(),
             builder: (context, snapshot) {
@@ -311,6 +335,18 @@ class _AdminHomeScreen extends StatelessWidget {
               }
               
               final products = snapshot.data!.docs;
+              if (products.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text('No products yet', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
+                );
+              }
               
               return ListView.builder(
                 shrinkWrap: true,
@@ -321,48 +357,40 @@ class _AdminHomeScreen extends StatelessWidget {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      leading: product.get('imageUrl') != null
-                          ? CircleAvatar(
-                              backgroundImage: NetworkImage(product.get('imageUrl')),
-                              radius: 20,
-                            )
-                          : const CircleAvatar(
-                              radius: 20,
-                              child: Icon(Icons.image, size: 20),
-                            ),
-                      title: Text(product.get('productName'), style: const TextStyle(fontSize: 12)),
-                      subtitle: Text('Likes: ${product.get('likes')} | Views: ${product.get('views')}', style: const TextStyle(fontSize: 10)),
-                      trailing: const Icon(Icons.trending_up, color: Colors.green, size: 18),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: product.get('imageUrl') != null
+                            ? Image.network(product.get('imageUrl'), width: 40, height: 40, fit: BoxFit.cover)
+                            : Container(width: 40, height: 40, color: Colors.grey[300], child: const Icon(Icons.image, size: 20)),
+                      ),
+                      title: Text(product.get('productName') ?? 'No Name', style: const TextStyle(fontSize: 13)),
+                      subtitle: Text(
+                        'By: ${product.get('entrepreneurName') ?? 'Unknown'}',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      trailing: Text(
+                        '\$${product.get('price')?.toStringAsFixed(2) ?? '0'}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
+                      ),
                     ),
                   );
                 },
               );
             },
           ),
-          
-          const SizedBox(height: 24),
-          
-          // Sales Chart
-          const Text(
-            'Sales Overview',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SimpleBarChart(
-                  data: [50, 75, 100, 125, 150, 200, 175],
-                  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
+  }
+
+  String _getCurrentDate() {
+    final now = DateTime.now();
+    return '${now.day}/${now.month}/${now.year} • ${_getWeekday(now.weekday)}';
+  }
+
+  String _getWeekday(int weekday) {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[weekday - 1];
   }
 }
 
@@ -382,9 +410,10 @@ class _StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -392,11 +421,7 @@ class _StatsCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
             ),
             const SizedBox(height: 4),
             Text(

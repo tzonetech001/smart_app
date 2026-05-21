@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
-import 'register_screen.dart';
-import 'admin/admin_dashboard.dart';
-import 'enterpreneur/entrepreneur_dashboard.dart';
-import 'customer/customer_dashboard.dart';
 import '../utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -43,22 +39,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _redirectBasedOnRole(UserRole role) {
-    Widget destination;
+    String route;
     switch (role) {
       case UserRole.admin:
-        destination = const AdminDashboard();
+        route = '/admin';
         break;
       case UserRole.entrepreneur:
-        destination = const EntrepreneurDashboard();
+        route = '/entrepreneur';
         break;
       default:
-        destination = const CustomerDashboard();
+        route = '/customer';
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
+    
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
@@ -118,8 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelStyle: TextStyle(fontSize: 12),
                             prefixIcon: Icon(Icons.email, size: 18),
                             border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
                           validator: Validators.email,
@@ -135,9 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: const Icon(Icons.lock, size: 18),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
                                 size: 18,
                               ),
                               onPressed: () {
@@ -147,8 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                             border: const OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
                           obscureText: _obscurePassword,
@@ -174,16 +163,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   );
                                 }
                                 return const Text(
                                   'Login',
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                                 );
                               },
                             ),
@@ -193,18 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text("Don't have an account? ",
-                                style: TextStyle(fontSize: 12)),
+                            const Text("Don't have an account? ", style: TextStyle(fontSize: 12)),
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const RegisterScreen()),
-                                );
+                                Navigator.pushReplacementNamed(context, '/register');
                               },
-                              child: const Text('Register',
-                                  style: TextStyle(fontSize: 12)),
+                              child: const Text('Register', style: TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),

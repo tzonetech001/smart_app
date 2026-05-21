@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,24 +13,35 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto navigate after 3 seconds if already logged in
-    Future.delayed(const Duration(seconds: 3), () {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      if (authService.currentUser != null) {
-        _redirectBasedOnRole(authService.currentUser!.role);
-      }
+    Future.delayed(const Duration(seconds: 2), () {
+      _navigateToNextScreen();
     });
   }
 
-  void _redirectBasedOnRole(role) {
-    // Import dashboards here to avoid circular imports
-    if (role == 'admin') {
-      Navigator.pushReplacementNamed(context, '/admin');
-    } else if (role == 'entrepreneur') {
-      Navigator.pushReplacementNamed(context, '/entrepreneur');
+  void _navigateToNextScreen() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    if (authService.currentUser != null) {
+      _redirectBasedOnRole(authService.currentUser!.role);
     } else {
-      Navigator.pushReplacementNamed(context, '/customer');
+      Navigator.pushReplacementNamed(context, '/login');
     }
+  }
+
+  void _redirectBasedOnRole(role) {
+    String route;
+    switch (role.toString().split('.').last) {
+      case 'admin':
+        route = '/admin';
+        break;
+      case 'entrepreneur':
+        route = '/entrepreneur';
+        break;
+      default:
+        route = '/customer';
+    }
+    
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
@@ -55,10 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   alignment: Alignment.topRight,
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
+                      Navigator.pushReplacementNamed(context, '/login');
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white),
