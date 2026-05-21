@@ -7,7 +7,6 @@ import 'admin/admin_dashboard.dart';
 import 'enterpreneur/entrepreneur_dashboard.dart';
 import 'customer/customer_dashboard.dart';
 import '../utils/validators.dart';
-import '../utils/constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,15 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-
-  // Demo credentials
-  final Map<String, Map<String, String>> demoCredentials = {
-    'admin': {'email': 'admin@gmail.com', 'password': '123456'},
-    'entrepreneur': {
-      'email': 'zabibusaidy3@gmail.com',
-      'password': 'zabibu@2021'
-    },
-  };
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -71,13 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _fillDemoCredentials(String type) {
-    setState(() {
-      _emailController.text = demoCredentials[type]!['email']!;
-      _passwordController.text = demoCredentials[type]!['password']!;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
           ),
         ),
         child: SafeArea(
@@ -108,30 +91,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Icon(
                           Icons.business_center,
                           size: 60,
-                          color: Color(0xFF667eea),
+                          color: Color(0xFF59F797),
                         ),
                         const SizedBox(height: 20),
                         const Text(
                           'Welcome Back',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Sign in to continue',
+                          'Sign in to your account',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Colors.grey,
                           ),
                         ),
                         const SizedBox(height: 30),
                         TextFormField(
                           controller: _emailController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: const InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email),
+                            labelStyle: TextStyle(fontSize: 12),
+                            prefixIcon: Icon(Icons.email, size: 18),
                             border: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.all(Radius.circular(12)),
@@ -143,14 +128,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock),
+                            labelStyle: const TextStyle(fontSize: 12),
+                            prefixIcon: const Icon(Icons.lock, size: 18),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility_off
                                     : Icons.visibility,
+                                size: 18,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -169,11 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
-                          height: 50,
+                          height: 45,
                           child: ElevatedButton(
                             onPressed: _handleLogin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF667eea),
+                              backgroundColor: const Color(0xFF59F797),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -193,7 +181,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 }
                                 return const Text(
                                   'Login',
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold),
                                 );
                               },
                             ),
@@ -203,7 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text("Don't have an account? "),
+                            const Text("Don't have an account? ",
+                                style: TextStyle(fontSize: 12)),
                             TextButton(
                               onPressed: () {
                                 Navigator.push(
@@ -212,40 +203,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       builder: (_) => const RegisterScreen()),
                                 );
                               },
-                              child: const Text('Register'),
-                            ),
-                          ],
-                        ),
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Demo Credentials',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _fillDemoCredentials('admin'),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                      color: Color(0xFF667eea)),
-                                ),
-                                child: const Text('Admin'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    _fillDemoCredentials('entrepreneur'),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                      color: Color(0xFF667eea)),
-                                ),
-                                child: const Text('Entrepreneur'),
-                              ),
+                              child: const Text('Register',
+                                  style: TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),

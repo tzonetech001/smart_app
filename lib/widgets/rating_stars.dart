@@ -11,7 +11,7 @@ class RatingStars extends StatelessWidget {
     required this.rating,
     this.onRatingChanged,
     this.allowHalfRating = true,
-    this.size = 20,
+    this.size = 16,
   });
 
   @override
@@ -23,10 +23,13 @@ class RatingStars extends StatelessWidget {
           onTap: onRatingChanged != null
               ? () => onRatingChanged!((index + 1).toDouble())
               : null,
-          child: Icon(
-            _getStarIcon(index + 1),
-            size: size,
-            color: Colors.amber,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            child: Icon(
+              _getStarIcon(index + 1),
+              size: size,
+              color: Colors.amber,
+            ),
           ),
         );
       }),

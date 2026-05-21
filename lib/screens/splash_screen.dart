@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
-import 'admin/admin_dashboard.dart';
-import 'enterpreneur/entrepreneur_dashboard.dart';
-import 'customer/customer_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,41 +14,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      _navigateToNextScreen();
+    // Auto navigate after 3 seconds if already logged in
+    Future.delayed(const Duration(seconds: 3), () {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      if (authService.currentUser != null) {
+        _redirectBasedOnRole(authService.currentUser!.role);
+      }
     });
   }
 
-  void _navigateToNextScreen() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    if (authService.currentUser != null) {
-      _redirectBasedOnRole(authService.currentUser!.role);
+  void _redirectBasedOnRole(role) {
+    // Import dashboards here to avoid circular imports
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else if (role == 'entrepreneur') {
+      Navigator.pushReplacementNamed(context, '/entrepreneur');
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/customer');
     }
-  }
-
-  void _redirectBasedOnRole(UserRole role) {
-    Widget destination;
-    switch (role) {
-      case UserRole.admin:
-        destination = const AdminDashboard();
-        break;
-      case UserRole.entrepreneur:
-        destination = const EntrepreneurDashboard();
-        break;
-      default:
-        destination = const CustomerDashboard();
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
   }
 
   @override
@@ -63,52 +42,132 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
           ),
         ),
-        child: Center(
+        child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+              // Login Button at Top Right
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.analytics,
-                  size: 60,
-                  color: Color(0xFF667eea),
-                ),
-              ),
-              const SizedBox(height: 30),
-              const Text(
-                'Smart Business Analytics',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                    child: const Text(
+                      'Login',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'AI-Powered Business Intelligence',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.analytics,
+                            size: 60,
+                            color: Color(0xFF59F797),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        const Text(
+                          'Smart Business Analytics',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'AI-Powered Business Intelligence',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 40),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            children: const [
+                              Text(
+                                '✨ Smart Business Solutions',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '📊 Real-time Analytics',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '🤖 AI-Powered Predictions',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '💼 Entrepreneur Tools',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '🛍️ Smart Shopping Experience',
+                                style: TextStyle(color: Colors.white, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Loading...',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             ],
           ),

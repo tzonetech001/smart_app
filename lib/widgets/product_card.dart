@@ -28,7 +28,7 @@ class ProductCard extends StatelessWidget {
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Container(
-                height: 140,
+                height: 130,
                 width: double.infinity,
                 color: Colors.grey[200],
                 child: product.imageUrl != null
@@ -37,11 +37,7 @@ class ProductCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         width: double.infinity,
                       )
-                    : const Icon(
-                        Icons.image,
-                        size: 50,
-                        color: Colors.grey,
-                      ),
+                    : Icon(Icons.image, size: 40, color: Colors.grey[400]),
               ),
             ),
             
@@ -56,8 +52,19 @@ class ProductCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Category
+                  Text(
+                    product.category.displayName,
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey,
                     ),
                   ),
                   
@@ -68,7 +75,7 @@ class ProductCard extends StatelessWidget {
                     '\$${product.price.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF667eea),
+                      color: Color(0xFF59F797),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -78,18 +85,25 @@ class ProductCard extends StatelessWidget {
                   // Rating and Likes
                   Row(
                     children: [
-                      const Icon(Icons.star, size: 12, color: Colors.amber),
+                      const Icon(Icons.star, size: 10, color: Colors.amber),
                       const SizedBox(width: 2),
                       Text(
                         product.rating.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 11),
+                        style: const TextStyle(fontSize: 10),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.favorite, size: 12, color: Colors.red),
+                      const Icon(Icons.favorite, size: 10, color: Colors.red),
                       const SizedBox(width: 2),
                       Text(
                         '${product.likes}',
-                        style: const TextStyle(fontSize: 11),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.comment, size: 10, color: Colors.blue),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${product.comments}',
+                        style: const TextStyle(fontSize: 10),
                       ),
                     ],
                   ),

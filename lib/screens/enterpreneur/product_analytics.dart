@@ -43,9 +43,9 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                 SizedBox(height: 16),
                 Text(
                   'No products to analyze',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-                Text('Add products to see analytics'),
+                Text('Add products to see analytics', style: TextStyle(fontSize: 12)),
               ],
             ),
           );
@@ -77,10 +77,11 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                   child: DropdownButton<String>(
                     value: _selectedProductId,
                     isExpanded: true,
+                    style: const TextStyle(fontSize: 12),
                     items: _products.map((product) {
                       return DropdownMenuItem(
                         value: product.id,
-                        child: Text(product.productName),
+                        child: Text(product.productName, style: const TextStyle(fontSize: 12)),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -102,7 +103,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
               // Engagement Metrics
               const Text(
                 'Engagement Metrics',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildEngagementMetrics(selectedProduct),
@@ -112,7 +113,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
               // Engagement Chart
               const Text(
                 'Engagement Trend',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildEngagementChart(selectedProduct),
@@ -122,7 +123,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
               // Product Insights
               const Text(
                 'Product Insights',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildInsights(selectedProduct),
@@ -138,7 +139,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+          colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -149,22 +150,24 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
             children: [
               const Text(
                 'Performance Level',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: product.performanceLevel == 'HIGH PERFORMANCE'
-                      ? Colors.green
-                      : Colors.orange,
+                      ? Colors.white
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   product.performanceLevel,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    color: product.performanceLevel == 'HIGH PERFORMANCE'
+                        ? Colors.green
+                        : Colors.orange,
                   ),
                 ),
               ),
@@ -190,7 +193,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
         Text(
           value,
           style: const TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -198,7 +201,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
         ),
       ],
     );
@@ -252,7 +255,6 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
   }
 
   Widget _buildEngagementChart(ProductModel product) {
-    // Sample engagement data over last 7 days
     final List<double> engagementData = [
       product.engagementScore * 0.6,
       product.engagementScore * 0.7,
@@ -276,7 +278,11 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           gridData: FlGridData(show: true),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+              ),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -300,12 +306,12 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                 return FlSpot(index.toDouble(), engagementData[index]);
               }),
               isCurved: true,
-              color: const Color(0xFF667eea),
+              color: const Color(0xFF59F797),
               barWidth: 3,
               dotData: FlDotData(show: true),
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFF667eea).withOpacity(0.1),
+                color: const Color(0xFF59F797).withOpacity(0.1),
               ),
             ),
           ],
@@ -345,7 +351,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           margin: const EdgeInsets.only(bottom: 8),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(insights[index]),
+            child: Text(insights[index], style: const TextStyle(fontSize: 11)),
           ),
         );
       },
@@ -376,12 +382,12 @@ class _MetricCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: color),
+            Icon(icon, size: 28, color: color),
             const SizedBox(height: 8),
             Text(
               '$value${suffix ?? ''}',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -389,7 +395,7 @@ class _MetricCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
