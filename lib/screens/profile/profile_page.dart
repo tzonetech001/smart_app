@@ -210,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const Divider(),
                         _buildInfoRow(
-                          icon: Icons.phone_outline,
+                          icon: Icons.phone_outlined,
                           label: 'Phone Number',
                           value: _phoneController.text,
                           isEditing: _isEditing,
@@ -218,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const Divider(),
                         _buildInfoRow(
-                          icon: Icons.email_outline,
+                          icon: Icons.email_outlined,
                           label: 'Email Address',
                           value: _emailController.text,
                           isEditing: false,

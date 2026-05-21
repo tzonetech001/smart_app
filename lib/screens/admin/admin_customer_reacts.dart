@@ -307,8 +307,8 @@ class _AdminCustomerReactsState extends State<AdminCustomerReacts> {
           itemBuilder: (context, index) {
             final like = likes[index];
 
-            return FutureBuilder<DocumentSnapshot>(
-              future: Future.wait([
+            return FutureBuilder<List<DocumentSnapshot<Map<String, dynamic>>>>(
+              future: Future.wait<DocumentSnapshot<Map<String, dynamic>>>([
                 FirebaseFirestore.instance
                     .collection('users')
                     .doc(like.get('userId'))
@@ -317,7 +317,7 @@ class _AdminCustomerReactsState extends State<AdminCustomerReacts> {
                     .collection('products')
                     .doc(like.get('productId'))
                     .get(),
-              ]).then((results) => results),
+              ]),
               builder: (context, futures) {
                 if (!futures.hasData) {
                   return Card(
