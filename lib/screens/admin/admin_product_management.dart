@@ -789,7 +789,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                             imageUrl = null;
                           }
                           
-                          final updates = {
+                          final Map<String, Object?> updates = {
                             'productName': _nameController.text.trim(),
                             'description': _descriptionController.text.trim(),
                             'category': _selectedCategory.toString().split('.').last,
