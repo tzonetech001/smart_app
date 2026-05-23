@@ -802,7 +802,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                             updates['imageUrl'] = imageUrl;
                           } else if (!_keepExistingImage) {
                             updates['imageUrl'] = null;
-                          }
+                          } 
                           
                           await FirebaseFirestore.instance
                               .collection('products')

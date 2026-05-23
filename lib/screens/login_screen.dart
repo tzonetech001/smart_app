@@ -7,7 +7,6 @@ import 'admin/admin_dashboard.dart';
 import 'enterpreneur/entrepreneur_dashboard.dart';
 import 'customer/customer_dashboard.dart';
 import '../utils/validators.dart';
-import '../utils/constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
