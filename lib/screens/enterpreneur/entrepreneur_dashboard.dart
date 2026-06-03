@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../../services/ai_service.dart';
 import '../../models/product_model.dart';
 import 'add_product_screen.dart';
 import 'edit_product_screen.dart';
@@ -38,7 +37,7 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
       'page': null,
       'isExpandable': true,
       'submenu': [
-        {'icon': Icons.speed, 'title': 'Product Performance Level', 'index': 0},
+        {'icon': Icons.speed, 'title': 'Product Performance', 'index': 0},
         {'icon': Icons.trending_up, 'title': 'Market Trends', 'index': 1},
         {'icon': Icons.people, 'title': 'Customer Insights', 'index': 2},
       ],
@@ -103,31 +102,17 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
-            if (index != 1) {
-              _isAnalyticsExpanded = false;
-            }
+            if (index != 1) _isAnalyticsExpanded = false;
           });
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF59F797),
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.auto_awesome),
-            label: 'AI',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Products'),
+          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Analytics'),
+          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'AI'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -135,11 +120,7 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
 
   String _getCurrentTitle() {
     if (_selectedIndex == 1 && _isAnalyticsExpanded) {
-      const submenuTitles = [
-        'Product Performance',
-        'Market Trends',
-        'Customer Insights',
-      ];
+      const submenuTitles = ['Product Performance', 'Market Trends', 'Customer Insights'];
       return submenuTitles[_selectedAnalyticsSubmenu];
     }
     return _titles[_selectedIndex];
@@ -147,31 +128,32 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
 
   Widget _getCurrentPage() {
     if (_selectedIndex == 1 && _isAnalyticsExpanded) {
-      return ProductAnalytics(
-        initialSubmenuIndex: _selectedAnalyticsSubmenu,
-      );
+      return ProductAnalytics(initialSubmenuIndex: _selectedAnalyticsSubmenu);
     }
     return _menuItems[_selectedIndex]['page'] ?? Container();
   }
 
+  // Slim & smooth sidebar
   Widget _buildSidebar() {
     return Drawer(
       child: Container(
+        width: 260, // Slimmer width
         color: Colors.white,
         child: Column(
           children: [
+            // Header (compact)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               decoration: const BoxDecoration(color: Color(0xFF59F797)),
               child: Column(
                 children: [
                   const CircleAvatar(
-                    radius: 40,
+                    radius: 28,
                     backgroundColor: Colors.white,
-                    child: Icon(Icons.business, size: 40, color: Color(0xFF59F797)),
+                    child: Icon(Icons.business, size: 28, color: Color(0xFF59F797)),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
@@ -184,30 +166,31 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                           children: [
                             Text(
                               '${data['firstName'] ?? 'Entrepreneur'} ${data['lastName'] ?? ''}',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               data['email'] ?? 'entrepreneur@example.com',
-                              style: const TextStyle(fontSize: 11, color: Colors.white70),
+                              style: const TextStyle(fontSize: 10, color: Colors.white70),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         );
                       }
                       return const Text(
                         'Entrepreneur',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                       );
                     },
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView.separated(
                 itemCount: _menuItems.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
+                separatorBuilder: (_, __) => const Divider(height: 0, thickness: 0.5),
                 itemBuilder: (context, index) {
                   final item = _menuItems[index];
                   final isSelected = _selectedIndex == index;
@@ -216,21 +199,25 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                   return Column(
                     children: [
                       ListTile(
-                        leading: Icon(item['icon'], color: isSelected ? const Color(0xFF59F797) : Colors.grey),
+                        dense: true,
+                        leading: Icon(item['icon'], size: 22, color: isSelected ? const Color(0xFF59F797) : Colors.grey),
                         title: Text(
                           item['title'],
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? const Color(0xFF59F797) : Colors.black87,
                           ),
                         ),
                         trailing: item['isExpandable'] == true
-                            ? Icon(isExpanded ? Icons.expand_less : Icons.expand_more,
-                                size: 18, color: isSelected ? const Color(0xFF59F797) : Colors.grey)
+                            ? Icon(
+                                isExpanded ? Icons.expand_less : Icons.expand_more,
+                                size: 18,
+                                color: isSelected ? const Color(0xFF59F797) : Colors.grey,
+                              )
                             : null,
                         selected: isSelected,
-                        selectedTileColor: const Color(0xFF59F797).withOpacity(0.1),
+                        selectedTileColor: const Color(0xFF59F797).withOpacity(0.08),
                         onTap: () {
                           if (item['isExpandable'] == true) {
                             setState(() {
@@ -252,29 +239,31 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                         },
                       ),
                       if (isExpanded && item['isExpandable'] == true)
-                        Column(
-                          children: List.generate(item['submenu'].length, (i) {
-                            final subItem = item['submenu'][i];
-                            final isSubSelected = _selectedAnalyticsSubmenu == subItem['index'];
-                            return ListTile(
-                              leading: Icon(subItem['icon'], size: 18,
-                                  color: isSubSelected ? const Color(0xFF59F797) : Colors.grey),
-                              title: Text(
-                                subItem['title'],
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isSubSelected ? const Color(0xFF59F797) : Colors.grey[700],
+                        Padding(
+                          padding: const EdgeInsets.only(left: 48),
+                          child: Column(
+                            children: List.generate(item['submenu'].length, (i) {
+                              final subItem = item['submenu'][i];
+                              final isSubSelected = _selectedAnalyticsSubmenu == subItem['index'];
+                              return ListTile(
+                                dense: true,
+                                leading: Icon(subItem['icon'], size: 18,
+                                    color: isSubSelected ? const Color(0xFF59F797) : Colors.grey),
+                                title: Text(
+                                  subItem['title'],
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isSubSelected ? const Color(0xFF59F797) : Colors.grey[700],
+                                  ),
                                 ),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _selectedAnalyticsSubmenu = subItem['index'];
-                                });
-                                Navigator.pop(context);
-                              },
-                            );
-                          }),
+                                onTap: () {
+                                  setState(() => _selectedAnalyticsSubmenu = subItem['index']);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            }),
+                          ),
                         ),
                     ],
                   );
@@ -283,14 +272,15 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout', style: TextStyle(fontSize: 12, color: Colors.red)),
+              dense: true,
+              leading: const Icon(Icons.logout, color: Colors.red, size: 22),
+              title: const Text('Logout', style: TextStyle(fontSize: 13, color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _showLogoutDialog();
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -311,9 +301,7 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
           TextButton(
             onPressed: () async {
               await Provider.of<AuthService>(context, listen: false).logout();
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
+              if (mounted) Navigator.pushReplacementNamed(context, '/login');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Logout', style: TextStyle(fontSize: 12)),
@@ -338,10 +326,9 @@ class _ProductsScreenState extends State<_ProductsScreen> {
   String _searchQuery = '';
   String? _expandedProductId;
 
-  // Helper to format TZS currency
+  // Format price in Tanzanian Shillings
   String _formatTZS(double price) {
-    final formatter = NumberFormat.currency(locale: 'sw_TZ', symbol: 'TZS ', decimalDigits: 0);
-    return formatter.format(price);
+    return 'TZS ${price.toStringAsFixed(0)}';
   }
 
   @override
@@ -350,6 +337,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
 
     return Column(
       children: [
+        // Search and filter
         Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -406,9 +394,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(fontSize: 12)));
               }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
               var products = snapshot.data!.docs.map((doc) {
                 return ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
@@ -417,10 +403,10 @@ class _ProductsScreenState extends State<_ProductsScreen> {
               products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
               if (_selectedFilter != 'all') {
-                products = products.where((product) => product.category.toString().split('.').last == _selectedFilter).toList();
+                products = products.where((p) => p.category.toString().split('.').last == _selectedFilter).toList();
               }
               if (_searchQuery.isNotEmpty) {
-                products = products.where((product) => product.productName.toLowerCase().contains(_searchQuery)).toList();
+                products = products.where((p) => p.productName.toLowerCase().contains(_searchQuery)).toList();
               }
 
               if (products.isEmpty) {
@@ -431,7 +417,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                       Icon(Icons.inventory, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        _searchQuery.isNotEmpty ? 'No products match your search' : 'No products yet',
+                        _searchQuery.isNotEmpty ? 'No products match' : 'No products yet',
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       if (_searchQuery.isNotEmpty)
@@ -472,21 +458,26 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Product image - using Image.network (web safe)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: product.imageUrl != null
+                                    child: product.imageUrl != null && product.imageUrl!.isNotEmpty
                                         ? Image.network(
                                             product.imageUrl!,
                                             width: 70,
                                             height: 70,
                                             fit: BoxFit.cover,
                                             errorBuilder: (context, error, stackTrace) => Container(
-                                              width: 70, height: 70, color: Colors.grey[300],
+                                              width: 70,
+                                              height: 70,
+                                              color: Colors.grey[300],
                                               child: const Icon(Icons.broken_image, size: 35),
                                             ),
                                           )
                                         : Container(
-                                            width: 70, height: 70, color: Colors.grey[300],
+                                            width: 70,
+                                            height: 70,
+                                            color: Colors.grey[300],
                                             child: const Icon(Icons.image, size: 35),
                                           ),
                                   ),
@@ -495,9 +486,15 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(product.productName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                        Text(
+                                          product.productName,
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                        ),
                                         const SizedBox(height: 4),
-                                        Text(product.category.displayName, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                        Text(
+                                          product.category.displayName,
+                                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                        ),
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
@@ -540,7 +537,11 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         _formatTZS(product.price),
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF59F797),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -618,9 +619,8 @@ class _ProductsScreenState extends State<_ProductsScreen> {
     );
   }
 
-  // Updated customer insights with real counts
+  // Customer Insights with real counts (uses dynamic streams)
   Widget _buildCustomerInsights(String productId) {
-    // Get product data for views (from product collection)
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('products').doc(productId).get(),
       builder: (context, productSnapshot) {
@@ -645,7 +645,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Comments Section
+              // Comments section
               const Text('Recent Comments', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               StreamBuilder<QuerySnapshot>(
@@ -671,15 +671,15 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: comments.length,
-                    itemBuilder: (context, index) {
-                      final comment = comments[index];
+                    itemBuilder: (context, i) {
+                      final comment = comments[i];
                       final sentiment = comment.get('sentiment') ?? 'neutral';
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance.collection('users').doc(comment.get('userId')).get(),
-                        builder: (context, userSnapshot) {
+                        builder: (context, userSnap) {
                           String userName = 'User';
-                          if (userSnapshot.hasData && userSnapshot.data != null) {
-                            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                          if (userSnap.hasData && userSnap.data != null) {
+                            final userData = userSnap.data!.data() as Map<String, dynamic>;
                             userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
                             if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
                           }
@@ -718,7 +718,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
 
               const SizedBox(height: 12),
 
-              // Likes Section
+              // Likes section
               const Text('Recent Likes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               StreamBuilder<QuerySnapshot>(
@@ -746,10 +746,10 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                     children: likes.map((like) {
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance.collection('users').doc(like.get('userId')).get(),
-                        builder: (context, userSnapshot) {
+                        builder: (context, userSnap) {
                           String userName = 'User';
-                          if (userSnapshot.hasData && userSnapshot.data != null) {
-                            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                          if (userSnap.hasData && userSnap.data != null) {
+                            final userData = userSnap.data!.data() as Map<String, dynamic>;
                             userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
                             if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
                           }
@@ -769,7 +769,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
 
               const SizedBox(height: 12),
 
-              // Overall Stats (dynamic counts)
+              // Overall stats
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('likes').where('productId', isEqualTo: productId).snapshots(),
                 builder: (context, likeCountSnap) {
@@ -834,11 +834,11 @@ class _ProductsScreenState extends State<_ProductsScreen> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final difference = now.difference(date);
-    if (difference.inDays > 7) return '${date.day}/${date.month}/${date.year}';
-    if (difference.inDays > 0) return '${difference.inDays}d ago';
-    if (difference.inHours > 0) return '${difference.inHours}h ago';
-    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
+    final diff = now.difference(date);
+    if (diff.inDays > 7) return '${date.day}/${date.month}/${date.year}';
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
     return 'Just now';
   }
 
@@ -865,7 +865,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Product deleted successfully', style: TextStyle(fontSize: 12))),
+                  const SnackBar(content: Text('Product deleted successfully', style: TextStyle(fontSize: 12)), backgroundColor: Colors.green),
                 );
                 setState(() {});
               }
