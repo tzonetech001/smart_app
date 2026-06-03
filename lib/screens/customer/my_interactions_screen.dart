@@ -15,7 +15,7 @@ class MyInteractionsScreen extends StatefulWidget {
 class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
   int _selectedTab = 0;
   
-  final List<String> _tabs = ['Liked Products', 'My Reviews'];
+  final List<String> _tabs = ['❤️ Liked Products', '💬 My Reviews'];
 
   @override
   Widget build(BuildContext context) {
@@ -25,34 +25,40 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
       children: [
         // Tab Bar
         Container(
-          margin: const EdgeInsets.all(16),
-  child: SegmentedButton<int>(
-    segments: const [
-      ButtonSegment(value: 0, label: Text('Liked Products')),
-      ButtonSegment(value: 1, label: Text('My Reviews')),
-    ],
-    selected: {_selectedTab},
-    onSelectionChanged: (Set<int> selection) {
-      setState(() {
-        _selectedTab = selection.first;
-      });
-    },
-    style: ButtonStyle(
-      backgroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return const Color(0xFF667eea);
-        }
-        return Colors.grey[200];
-      }),
-      foregroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return Colors.white;
-        }
-        return Colors.black87;
-      }),
-    ),
-  ),
-),
+          margin: const EdgeInsets.all(12),
+          child: SegmentedButton<int>(
+            segments: [
+              ButtonSegment(
+                value: 0,
+                label: const Text('❤️ Liked Products', style: TextStyle(fontSize: 11)),
+              ),
+              ButtonSegment(
+                value: 1,
+                label: const Text('💬 My Reviews', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+            selected: {_selectedTab},
+            onSelectionChanged: (Set<int> selection) {
+              setState(() {
+                _selectedTab = selection.first;
+              });
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF59F797);
+                }
+                return Colors.grey[200];
+              }),
+              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return Colors.black87;
+              }),
+            ),
+          ),
+        ),
 
         Expanded(
           child: _selectedTab == 0
@@ -68,6 +74,7 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
       stream: FirebaseFirestore.instance
           .collection('likes')
           .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, likeSnapshot) {
         if (!likeSnapshot.hasData) {
@@ -77,17 +84,21 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
         final likedProductIds = likeSnapshot.data!.docs.map((doc) => doc.get('productId') as String).toList();
         
         if (likedProductIds.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.favorite_border, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
+                Icon(Icons.favorite_border, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
                 Text(
                   'No liked products yet',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
-                Text('Start liking products to see them here'),
+                const SizedBox(height: 8),
+                Text(
+                  'Start liking products to see them here',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
               ],
             ),
           );
@@ -103,9 +114,16 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             
-            final products = productSnapshot.data!.docs.map((doc) {
+            var products = productSnapshot.data!.docs.map((doc) {
               return ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
             }).toList();
+            
+            // Sort by liked date (maintain order from likes collection)
+            products.sort((a, b) {
+              final aIndex = likedProductIds.indexOf(a.id);
+              final bIndex = likedProductIds.indexOf(b.id);
+              return aIndex.compareTo(bIndex);
+            });
             
             return GridView.builder(
               padding: const EdgeInsets.all(12),
@@ -141,17 +159,21 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
         final comments = snapshot.data!.docs;
         
         if (comments.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.comment_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
+                Icon(Icons.comment_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
                 Text(
                   'No reviews yet',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
-                Text('Your reviews will appear here'),
+                const SizedBox(height: 8),
+                Text(
+                  'Your reviews will appear here',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
               ],
             ),
           );
@@ -171,94 +193,131 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
                   return const Card(
                     child: Padding(
                       padding: EdgeInsets.all(12),
-                      child: Text('Loading...'),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
                   );
                 }
                 
                 final productData = productSnapshot.data!.data() as Map<String, dynamic>;
                 final product = ProductModel.fromMap(productId, productData);
+                final sentiment = comment.get('sentiment') ?? 'neutral';
+                final createdAt = (comment.get('createdAt') as Timestamp).toDate();
                 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: product.imageUrl != null
-                                  ? Image.network(
-                                      product.imageUrl!,
-                                      width: 50,
-                                      height: 50,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(
-                                      width: 50,
-                                      height: 50,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.image),
-                                    ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.productName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: _getSentimentColor(comment.get('sentiment')).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      comment.get('sentiment') ?? 'neutral',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: _getSentimentColor(comment.get('sentiment')),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(product: product),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: product.imageUrl != null
+                                    ? Image.network(
+                                        product.imageUrl!,
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: 50,
+                                        height: 50,
+                                        color: Colors.grey[300],
+                                        child: const Icon(Icons.image, size: 25),
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.productName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              _formatDate((comment.get('createdAt') as Timestamp).toDate()),
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(comment.get('comment')),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProductDetailScreen(product: product),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getSentimentColor(sentiment).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            sentiment.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: _getSentimentColor(sentiment),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _formatDate(createdAt),
+                                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                            child: const Text('View Product'),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              comment.get('comment') ?? '',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ProductDetailScreen(product: product),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF59F797),
+                              ),
+                              child: const Text('View Product', style: TextStyle(fontSize: 11)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -302,7 +361,7 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
                         fit: BoxFit.cover,
                         width: double.infinity,
                       )
-                    : const Icon(Icons.image, size: 40, color: Colors.grey),
+                    : Icon(Icons.image, size: 40, color: Colors.grey[400]),
               ),
             ),
             Padding(
@@ -315,7 +374,7 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -323,10 +382,22 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
                   Text(
                     '\$${product.price.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF667eea),
+                      fontSize: 11,
+                      color: Color(0xFF59F797),
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite, size: 10, color: Colors.red),
+                      const SizedBox(width: 2),
+                      Text('${product.likes}', style: const TextStyle(fontSize: 9)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.comment, size: 10, color: Colors.blue),
+                      const SizedBox(width: 2),
+                      Text('${product.comments}', style: const TextStyle(fontSize: 9)),
+                    ],
                   ),
                 ],
               ),
@@ -337,7 +408,7 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
     );
   }
 
-  Color _getSentimentColor(String? sentiment) {
+  Color _getSentimentColor(String sentiment) {
     switch (sentiment) {
       case 'positive':
         return Colors.green;
@@ -349,6 +420,19 @@ class _MyInteractionsScreenState extends State<MyInteractionsScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 7) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

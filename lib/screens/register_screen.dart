@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
 import '../utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -22,22 +21,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedGender;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-
   final List<String> _genders = ['Male', 'Female', 'Other'];
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-    
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
       );
       return;
     }
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
     bool success = await authService.register(
       firstName: _firstNameController.text.trim(),
@@ -47,24 +41,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       phoneNumber: _phoneController.text.trim(),
       gender: _selectedGender,
     );
-    
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful! Please login.'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Registration successful! Please login.'), backgroundColor: Colors.green),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      Navigator.pushReplacementNamed(context, '/login');
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authService.errorMessage ?? 'Registration failed'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(authService.errorMessage ?? 'Registration failed'), backgroundColor: Colors.red),
       );
     }
   }
@@ -73,8 +58,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Register'),
-        backgroundColor: const Color(0xFF667eea),
+        title: const Text('Register', style: TextStyle(fontSize: 14)),
+        backgroundColor: const Color(0xFF59F797),
         foregroundColor: Colors.white,
       ),
       body: Container(
@@ -82,7 +67,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
           ),
         ),
         child: SafeArea(
@@ -101,30 +86,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.person_add,
-                          size: 50,
-                          color: Color(0xFF667eea),
-                        ),
+                        const Icon(Icons.person_add, size: 50, color: Color(0xFF59F797)),
                         const SizedBox(height: 20),
-                        const Text(
-                          'Create Account',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        const Text('Create Account', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 30),
                         Row(
                           children: [
                             Expanded(
                               child: TextFormField(
                                 controller: _firstNameController,
+                                style: const TextStyle(fontSize: 12),
                                 decoration: const InputDecoration(
                                   labelText: 'First Name',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  ),
+                                  labelStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                                 validator: Validators.required,
                               ),
@@ -133,11 +109,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Expanded(
                               child: TextFormField(
                                 controller: _lastNameController,
+                                style: const TextStyle(fontSize: 12),
                                 decoration: const InputDecoration(
                                   labelText: 'Last Name',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  ),
+                                  labelStyle: TextStyle(fontSize: 12),
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                                 validator: Validators.required,
                               ),
@@ -147,12 +124,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _emailController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: const InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
-                            ),
+                            prefixIcon: Icon(Icons.email, size: 18),
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: Validators.email,
                           keyboardType: TextInputType.emailAddress,
@@ -160,12 +137,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _phoneController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: const InputDecoration(
                             labelText: 'Phone Number',
-                            prefixIcon: Icon(Icons.phone),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
-                            ),
+                            prefixIcon: Icon(Icons.phone, size: 18),
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: Validators.phoneNumber,
                           keyboardType: TextInputType.phone,
@@ -173,43 +150,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           value: _selectedGender,
+                          style: const TextStyle(fontSize: 12),
                           decoration: const InputDecoration(
                             labelText: 'Gender',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
-                            ),
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
-                          items: _genders.map((gender) {
-                            return DropdownMenuItem(
-                              value: gender,
-                              child: Text(gender),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedGender = value;
-                            });
-                          },
+                          items: _genders.map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 12)))).toList(),
+                          onChanged: (v) => setState(() => _selectedGender = v),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock),
+                            prefixIcon: const Icon(Icons.lock, size: 18),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, size: 18),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
-                            border: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
-                            ),
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           obscureText: _obscurePassword,
                           validator: Validators.password,
@@ -217,60 +179,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _confirmPasswordController,
+                          style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
                             labelText: 'Confirm Password',
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            prefixIcon: const Icon(Icons.lock_outline, size: 18),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
-                                });
-                              },
+                              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, size: 18),
+                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                             ),
-                            border: const OutlineInputBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(12)),
-                            ),
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           obscureText: _obscureConfirmPassword,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
-                            }
-                            return null;
-                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Please confirm your password' : null,
                         ),
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
-                          height: 50,
+                          height: 45,
                           child: ElevatedButton(
                             onPressed: _handleRegister,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF667eea),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              backgroundColor: const Color(0xFF59F797),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             child: Consumer<AuthService>(
-                              builder: (context, authService, child) {
-                                if (authService.isLoading) {
-                                  return const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  );
-                                }
-                                return const Text(
-                                  'Register',
-                                  style: TextStyle(fontSize: 16),
-                                );
-                              },
+                              builder: (c, a, _) => a.isLoading
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text('Register', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ),
@@ -278,15 +214,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text("Already have an account? "),
+                            const Text("Already have an account? ", style: TextStyle(fontSize: 12)),
                             TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                                );
-                              },
-                              child: const Text('Login'),
+                              onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                              child: const Text('Login', style: TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),

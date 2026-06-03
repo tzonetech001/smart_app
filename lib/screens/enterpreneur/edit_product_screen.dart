@@ -37,6 +37,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _selectedCategory = widget.product.category;
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _stockController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -52,7 +61,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     try {
       // Delete old image if exists
-      if (widget.product.imageUrl != null && _keepExistingImage == false) {
+      if (widget.product.imageUrl != null && !_keepExistingImage) {
         try {
           final oldRef =
               FirebaseStorage.instance.refFromURL(widget.product.imageUrl!);
@@ -78,7 +87,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
+        const SnackBar(
+            content: Text('Please select a category'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -90,7 +101,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       imageUrl = await _uploadNewImage();
     }
 
-    final updates = {
+    final updates = <String, dynamic>{
       'productName': _nameController.text.trim(),
       'description': _descriptionController.text.trim(),
       'category': _selectedCategory.toString().split('.').last,
@@ -101,6 +112,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     if (imageUrl != null) {
       updates['imageUrl'] = imageUrl;
+    } else if (!_keepExistingImage) {
+      updates['imageUrl'] = null;
     }
 
     try {
@@ -111,13 +124,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully')),
+          const SnackBar(
+              content: Text('Product updated successfully'),
+              backgroundColor: Colors.green),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isUploading = false);
@@ -128,13 +143,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Product'),
-        backgroundColor: const Color(0xFF667eea),
+        title: const Text('Edit Product', style: TextStyle(fontSize: 16)),
+        backgroundColor: const Color(0xFF59F797),
         foregroundColor: Colors.white,
+        centerTitle: true,
         actions: [
           TextButton(
             onPressed: _isUploading ? null : _updateProduct,
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: const Text('Save',
+                style: TextStyle(color: Colors.white, fontSize: 14)),
           ),
         ],
       ),
@@ -180,7 +197,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                     SizedBox(height: 8),
                                     Text(
                                       'Tap to change image',
-                                      style: TextStyle(color: Colors.white),
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 12),
                                     ),
                                   ],
                                 ),
@@ -214,7 +232,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                         SizedBox(height: 8),
                                         Text(
                                           'Tap to change image',
-                                          style: TextStyle(color: Colors.white),
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -230,7 +250,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   'Tap to add product image',
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[600]),
                                 ),
                               ],
                             )),
@@ -244,14 +265,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 value: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
+                  labelStyle: TextStyle(fontSize: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
+                style: const TextStyle(fontSize: 12),
                 items: ProductCategory.values.map((category) {
                   return DropdownMenuItem(
                     value: category,
-                    child: Text(category.displayName),
+                    child: Text(category.displayName,
+                        style: const TextStyle(fontSize: 12)),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -268,8 +292,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
               // Product Name
               TextFormField(
                 controller: _nameController,
+                style: const TextStyle(fontSize: 12),
                 decoration: const InputDecoration(
                   labelText: 'Product Name',
+                  labelStyle: TextStyle(fontSize: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
@@ -284,8 +310,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
               // Description
               TextFormField(
                 controller: _descriptionController,
+                style: const TextStyle(fontSize: 12),
                 decoration: const InputDecoration(
                   labelText: 'Description',
+                  labelStyle: TextStyle(fontSize: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
@@ -303,9 +331,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _priceController,
+                      style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
                         labelText: 'Price',
                         prefixText: '\$ ',
+                        labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
@@ -324,8 +354,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _stockController,
+                      style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
                         labelText: 'Stock',
+                        labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
@@ -356,7 +388,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Cancel'),
+                        child: const Text('Cancel',
+                            style: TextStyle(fontSize: 12)),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -364,10 +397,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       child: ElevatedButton(
                         onPressed: _updateProduct,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF667eea),
+                          backgroundColor: const Color(0xFF59F797),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Save Changes'),
+                        child: const Text('Save Changes',
+                            style: TextStyle(fontSize: 12)),
                       ),
                     ),
                   ],

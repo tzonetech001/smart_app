@@ -30,7 +30,6 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
     
     final authService = Provider.of<AuthService>(context, listen: false);
     
-    // Get entrepreneur's products
     final productsSnapshot = await FirebaseFirestore.instance
         .collection('products')
         .where('entrepreneurId', isEqualTo: authService.currentUser?.id)
@@ -40,10 +39,8 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
       return ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
     }).toList();
     
-    // Get sales history (simplified - in production, fetch from orders collection)
     final salesHistory = await _getSalesHistory();
     
-    // Get AI predictions
     _predictions = await _aiService.getSalesPrediction(_products, salesHistory);
     _recommendations = _predictions?['recommendations'] ?? [];
     
@@ -51,8 +48,6 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _getSalesHistory() async {
-    // In a real app, fetch from orders collection
-    // For demo, return sample data
     return List.generate(30, (index) {
       return {
         'date': DateTime.now().subtract(Duration(days: index)),
@@ -76,9 +71,9 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
             SizedBox(height: 16),
             Text(
               'No products to analyze',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            Text('Add products to get AI predictions'),
+            Text('Add products to get AI predictions', style: TextStyle(fontSize: 12)),
           ],
         ),
       );
@@ -94,7 +89,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -102,13 +97,13 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.white),
+                    Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                     SizedBox(width: 8),
                     Text(
                       'AI Sales Forecast',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -144,7 +139,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
           // AI Recommendations
           const Text(
             'AI Recommendations',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           
@@ -158,11 +153,11 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                     const SizedBox(height: 12),
                     const Text(
                       'All products are performing well!',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       'Continue monitoring for new insights',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -179,18 +174,20 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
                     leading: CircleAvatar(
+                      radius: 18,
                       backgroundColor: rec['priority'] == 'HIGH'
                           ? Colors.red.withOpacity(0.1)
                           : Colors.orange.withOpacity(0.1),
                       child: Icon(
                         rec['priority'] == 'HIGH' ? Icons.priority_high : Icons.lightbulb,
+                        size: 16,
                         color: rec['priority'] == 'HIGH' ? Colors.red : Colors.orange,
                       ),
                     ),
-                    title: Text(rec['recommendation']),
-                    subtitle: Text('Priority: ${rec['priority']}'),
+                    title: Text(rec['recommendation'], style: const TextStyle(fontSize: 12)),
+                    subtitle: Text('Priority: ${rec['priority']}', style: const TextStyle(fontSize: 10)),
                     trailing: rec['priority'] == 'HIGH'
-                        ? const Icon(Icons.warning, color: Colors.red)
+                        ? const Icon(Icons.warning, color: Colors.red, size: 18)
                         : null,
                   ),
                 );
@@ -202,7 +199,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
           // Product Performance Analysis
           const Text(
             'Product Performance Analysis',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           
@@ -228,7 +225,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                             child: Text(
                               product.productName,
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -242,6 +239,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                             child: Text(
                               growthRate > 0 ? '+${(growthRate * 100).round()}%' : '${(growthRate * 100).round()}%',
                               style: TextStyle(
+                                fontSize: 11,
                                 color: growthRate > 0 ? Colors.green : Colors.red,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -253,14 +251,14 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                       LinearProgressIndicator(
                         value: product.engagementScore / 2000,
                         backgroundColor: Colors.grey[200],
-                        color: growthRate > 0 ? Colors.green : Colors.orange,
+                        color: growthRate > 0 ? const Color(0xFF59F797) : Colors.orange,
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Engagement Score: ${product.engagementScore.toStringAsFixed(0)}'),
-                          Text('Views: ${product.views}'),
+                          Text('Engagement Score: ${product.engagementScore.toStringAsFixed(0)}', style: const TextStyle(fontSize: 10)),
+                          Text('Views: ${product.views}', style: const TextStyle(fontSize: 10)),
                         ],
                       ),
                     ],
@@ -287,7 +285,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                 children: [
                   const Text(
                     'Market Trends',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   ListView.builder(
@@ -299,12 +297,12 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          leading: const Icon(Icons.trending_up, color: Colors.green),
-                          title: Text(trend['productName']),
-                          subtitle: Text('${trend['category']} • ${trend['trendPercentage']} growth'),
+                          leading: const Icon(Icons.trending_up, color: Color(0xFF59F797), size: 18),
+                          title: Text(trend['productName'], style: const TextStyle(fontSize: 12)),
+                          subtitle: Text('${trend['category']} • ${trend['trendPercentage']} growth', style: const TextStyle(fontSize: 10)),
                           trailing: Text(
                             'Score: ${trend['engagementScore'].toStringAsFixed(0)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
                           ),
                         ),
                       );
@@ -322,12 +320,12 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
   Widget _buildForecastMetric(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 24),
+        Icon(icon, color: Colors.white, size: 20),
         const SizedBox(height: 8),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 20,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -335,7 +333,7 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
         ),
       ],
     );
