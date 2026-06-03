@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/auth_service.dart';
 import '../../models/product_model.dart';
 import 'add_product_screen.dart';
@@ -37,7 +38,7 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
       'page': null,
       'isExpandable': true,
       'submenu': [
-        {'icon': Icons.speed, 'title': 'Product Performance', 'index': 0},
+        {'icon': Icons.speed, 'title': 'Product Performance Level', 'index': 0},
         {'icon': Icons.trending_up, 'title': 'Market Trends', 'index': 1},
         {'icon': Icons.people, 'title': 'Customer Insights', 'index': 2},
       ],
@@ -102,7 +103,9 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
-            if (index != 1) _isAnalyticsExpanded = false;
+            if (index != 1) {
+              _isAnalyticsExpanded = false;
+            }
           });
         },
         type: BottomNavigationBarType.fixed,
@@ -120,7 +123,11 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
 
   String _getCurrentTitle() {
     if (_selectedIndex == 1 && _isAnalyticsExpanded) {
-      const submenuTitles = ['Product Performance', 'Market Trends', 'Customer Insights'];
+      const submenuTitles = [
+        'Product Performance',
+        'Market Trends',
+        'Customer Insights',
+      ];
       return submenuTitles[_selectedAnalyticsSubmenu];
     }
     return _titles[_selectedIndex];
@@ -128,32 +135,31 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
 
   Widget _getCurrentPage() {
     if (_selectedIndex == 1 && _isAnalyticsExpanded) {
-      return ProductAnalytics(initialSubmenuIndex: _selectedAnalyticsSubmenu);
+      return ProductAnalytics(
+        initialSubmenuIndex: _selectedAnalyticsSubmenu,
+      );
     }
     return _menuItems[_selectedIndex]['page'] ?? Container();
   }
 
-  // Slim & smooth sidebar
   Widget _buildSidebar() {
     return Drawer(
       child: Container(
-        width: 260, // Slimmer width
         color: Colors.white,
         child: Column(
           children: [
-            // Header (compact)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
               decoration: const BoxDecoration(color: Color(0xFF59F797)),
               child: Column(
                 children: [
                   const CircleAvatar(
-                    radius: 28,
+                    radius: 40,
                     backgroundColor: Colors.white,
-                    child: Icon(Icons.business, size: 28, color: Color(0xFF59F797)),
+                    child: Icon(Icons.business, size: 40, color: Color(0xFF59F797)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
@@ -166,31 +172,30 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                           children: [
                             Text(
                               '${data['firstName'] ?? 'Entrepreneur'} ${data['lastName'] ?? ''}',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               data['email'] ?? 'entrepreneur@example.com',
-                              style: const TextStyle(fontSize: 10, color: Colors.white70),
-                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 11, color: Colors.white70),
                             ),
                           ],
                         );
                       }
                       return const Text(
                         'Entrepreneur',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                       );
                     },
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView.separated(
                 itemCount: _menuItems.length,
-                separatorBuilder: (_, __) => const Divider(height: 0, thickness: 0.5),
+                separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final item = _menuItems[index];
                   final isSelected = _selectedIndex == index;
@@ -199,25 +204,21 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                   return Column(
                     children: [
                       ListTile(
-                        dense: true,
-                        leading: Icon(item['icon'], size: 22, color: isSelected ? const Color(0xFF59F797) : Colors.grey),
+                        leading: Icon(item['icon'], color: isSelected ? const Color(0xFF59F797) : Colors.grey),
                         title: Text(
                           item['title'],
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? const Color(0xFF59F797) : Colors.black87,
                           ),
                         ),
                         trailing: item['isExpandable'] == true
-                            ? Icon(
-                                isExpanded ? Icons.expand_less : Icons.expand_more,
-                                size: 18,
-                                color: isSelected ? const Color(0xFF59F797) : Colors.grey,
-                              )
+                            ? Icon(isExpanded ? Icons.expand_less : Icons.expand_more,
+                                size: 18, color: isSelected ? const Color(0xFF59F797) : Colors.grey)
                             : null,
                         selected: isSelected,
-                        selectedTileColor: const Color(0xFF59F797).withOpacity(0.08),
+                        selectedTileColor: const Color(0xFF59F797).withOpacity(0.1),
                         onTap: () {
                           if (item['isExpandable'] == true) {
                             setState(() {
@@ -239,31 +240,29 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
                         },
                       ),
                       if (isExpanded && item['isExpandable'] == true)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 48),
-                          child: Column(
-                            children: List.generate(item['submenu'].length, (i) {
-                              final subItem = item['submenu'][i];
-                              final isSubSelected = _selectedAnalyticsSubmenu == subItem['index'];
-                              return ListTile(
-                                dense: true,
-                                leading: Icon(subItem['icon'], size: 18,
-                                    color: isSubSelected ? const Color(0xFF59F797) : Colors.grey),
-                                title: Text(
-                                  subItem['title'],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSubSelected ? const Color(0xFF59F797) : Colors.grey[700],
-                                  ),
+                        Column(
+                          children: List.generate(item['submenu'].length, (i) {
+                            final subItem = item['submenu'][i];
+                            final isSubSelected = _selectedAnalyticsSubmenu == subItem['index'];
+                            return ListTile(
+                              leading: Icon(subItem['icon'], size: 18,
+                                  color: isSubSelected ? const Color(0xFF59F797) : Colors.grey),
+                              title: Text(
+                                subItem['title'],
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSubSelected ? const Color(0xFF59F797) : Colors.grey[700],
                                 ),
-                                onTap: () {
-                                  setState(() => _selectedAnalyticsSubmenu = subItem['index']);
-                                  Navigator.pop(context);
-                                },
-                              );
-                            }),
-                          ),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _selectedAnalyticsSubmenu = subItem['index'];
+                                });
+                                Navigator.pop(context);
+                              },
+                            );
+                          }),
                         ),
                     ],
                   );
@@ -272,15 +271,14 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
             ),
             const Divider(),
             ListTile(
-              dense: true,
-              leading: const Icon(Icons.logout, color: Colors.red, size: 22),
-              title: const Text('Logout', style: TextStyle(fontSize: 13, color: Colors.red)),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(fontSize: 12, color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _showLogoutDialog();
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -294,10 +292,7 @@ class _EntrepreneurDashboardState extends State<EntrepreneurDashboard> {
         title: const Text('Logout', style: TextStyle(fontSize: 16)),
         content: const Text('Are you sure you want to logout?', style: TextStyle(fontSize: 12)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontSize: 12)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontSize: 12))),
           TextButton(
             onPressed: () async {
               await Provider.of<AuthService>(context, listen: false).logout();
@@ -326,10 +321,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
   String _searchQuery = '';
   String? _expandedProductId;
 
-  // Format price in Tanzanian Shillings
-  String _formatTZS(double price) {
-    return 'TZS ${price.toStringAsFixed(0)}';
-  }
+  String _formatTZS(double price) => 'TZS ${price.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +329,6 @@ class _ProductsScreenState extends State<_ProductsScreen> {
 
     return Column(
       children: [
-        // Search and filter
         Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -372,12 +363,10 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                   children: [
                     _buildFilterChip('All', 'all'),
                     const SizedBox(width: 8),
-                    ...ProductCategory.values.map((category) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _buildFilterChip(category.displayName, category.toString().split('.').last),
-                      );
-                    }),
+                    ...ProductCategory.values.map((category) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _buildFilterChip(category.displayName, category.toString().split('.').last),
+                    )),
                   ],
                 ),
               ),
@@ -396,11 +385,10 @@ class _ProductsScreenState extends State<_ProductsScreen> {
               }
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-              var products = snapshot.data!.docs.map((doc) {
-                return ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-              }).toList();
+              var products = snapshot.data!.docs.map((doc) =>
+                  ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
 
-              products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              products.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // local sort
 
               if (_selectedFilter != 'all') {
                 products = products.where((p) => p.category.toString().split('.').last == _selectedFilter).toList();
@@ -417,7 +405,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                       Icon(Icons.inventory, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        _searchQuery.isNotEmpty ? 'No products match' : 'No products yet',
+                        _searchQuery.isNotEmpty ? 'No products match your search' : 'No products yet',
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       if (_searchQuery.isNotEmpty)
@@ -453,30 +441,32 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                         Padding(
                           padding: const EdgeInsets.all(12),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Product image - using Image.network (web safe)
+                                  // Product image using CachedNetworkImage
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                        ? Image.network(
-                                            product.imageUrl!,
+                                    child: product.imageUrl != null
+                                        ? CachedNetworkImage(
+                                            imageUrl: product.imageUrl!,
                                             width: 70,
                                             height: 70,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => Container(
-                                              width: 70,
-                                              height: 70,
+                                            placeholder: (context, url) => Container(
+                                              width: 70, height: 70,
+                                              color: Colors.grey[200],
+                                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                            ),
+                                            errorWidget: (context, url, error) => Container(
+                                              width: 70, height: 70,
                                               color: Colors.grey[300],
                                               child: const Icon(Icons.broken_image, size: 35),
                                             ),
                                           )
                                         : Container(
-                                            width: 70,
-                                            height: 70,
+                                            width: 70, height: 70,
                                             color: Colors.grey[300],
                                             child: const Icon(Icons.image, size: 35),
                                           ),
@@ -486,15 +476,9 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          product.productName,
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                        ),
+                                        Text(product.productName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 4),
-                                        Text(
-                                          product.category.displayName,
-                                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                        ),
+                                        Text(product.category.displayName, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
@@ -537,11 +521,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         _formatTZS(product.price),
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF59F797),
-                                        ),
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
                                       ),
                                     ],
                                   ),
@@ -561,9 +541,12 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        Navigator.push(context, MaterialPageRoute(builder: (_) => EditProductScreen(product: product)))
-                                            .then((_) => setState(() {}));
+                                      onPressed: () async {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => EditProductScreen(product: product)),
+                                        );
+                                        if (result == true) setState(() {});
                                       },
                                       icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
                                       label: const Text('Edit', style: TextStyle(fontSize: 11)),
@@ -591,7 +574,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                               color: Colors.grey[50],
                               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                             ),
-                            child: _buildCustomerInsights(product.id),
+                            child: _buildCustomerInsights(product.id, product.views),
                           ),
                       ],
                     ),
@@ -619,189 +602,192 @@ class _ProductsScreenState extends State<_ProductsScreen> {
     );
   }
 
-  // Customer Insights with real counts (uses dynamic streams)
-  Widget _buildCustomerInsights(String productId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('products').doc(productId).get(),
-      builder: (context, productSnapshot) {
-        int views = 0;
-        if (productSnapshot.hasData && productSnapshot.data != null) {
-          final data = productSnapshot.data!.data() as Map<String, dynamic>;
-          views = data['views'] ?? 0;
-        }
-
-        return Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  // Build customer insights with real data – no endless loading
+  Widget _buildCustomerInsights(String productId, int productViews) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(),
+          const Row(
             children: [
-              const Divider(),
-              const Row(
-                children: [
-                  Icon(Icons.people, size: 16, color: Color(0xFF59F797)),
-                  SizedBox(width: 8),
-                  Text('Customer Insights', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Comments section
-              const Text('Recent Comments', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('comments')
-                    .where('productId', isEqualTo: productId)
-                    .orderBy('createdAt', descending: true)
-                    .limit(5)
-                    .snapshots(),
-                builder: (context, commentSnapshot) {
-                  if (!commentSnapshot.hasData) {
-                    return const SizedBox(height: 40, child: Center(child: CircularProgressIndicator()));
-                  }
-                  final comments = commentSnapshot.data!.docs;
-                  if (comments.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                      child: const Center(child: Text('No comments yet', style: TextStyle(fontSize: 11, color: Colors.grey))),
-                    );
-                  }
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: comments.length,
-                    itemBuilder: (context, i) {
-                      final comment = comments[i];
-                      final sentiment = comment.get('sentiment') ?? 'neutral';
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(comment.get('userId')).get(),
-                        builder: (context, userSnap) {
-                          String userName = 'User';
-                          if (userSnap.hasData && userSnap.data != null) {
-                            final userData = userSnap.data!.data() as Map<String, dynamic>;
-                            userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
-                            if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
-                          }
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 12,
-                                        backgroundColor: _getSentimentColor(sentiment).withOpacity(0.1),
-                                        child: Icon(_getSentimentIcon(sentiment), size: 12, color: _getSentimentColor(sentiment)),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(child: Text(userName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                                      Text(_formatDate((comment.get('createdAt') as Timestamp).toDate()),
-                                          style: const TextStyle(fontSize: 9, color: Colors.grey)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(comment.get('comment') ?? '', style: const TextStyle(fontSize: 11)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              // Likes section
-              const Text('Recent Likes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('likes')
-                    .where('productId', isEqualTo: productId)
-                    .orderBy('createdAt', descending: true)
-                    .limit(10)
-                    .snapshots(),
-                builder: (context, likeSnapshot) {
-                  if (!likeSnapshot.hasData) {
-                    return const SizedBox(height: 40, child: Center(child: CircularProgressIndicator()));
-                  }
-                  final likes = likeSnapshot.data!.docs;
-                  if (likes.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                      child: const Center(child: Text('No likes yet', style: TextStyle(fontSize: 11, color: Colors.grey))),
-                    );
-                  }
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: likes.map((like) {
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(like.get('userId')).get(),
-                        builder: (context, userSnap) {
-                          String userName = 'User';
-                          if (userSnap.hasData && userSnap.data != null) {
-                            final userData = userSnap.data!.data() as Map<String, dynamic>;
-                            userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
-                            if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
-                          }
-                          return Chip(
-                            avatar: const Icon(Icons.favorite, size: 12, color: Colors.red),
-                            label: Text(userName, style: const TextStyle(fontSize: 10)),
-                            backgroundColor: Colors.red.withOpacity(0.05),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                          );
-                        },
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              // Overall stats
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('likes').where('productId', isEqualTo: productId).snapshots(),
-                builder: (context, likeCountSnap) {
-                  final likeCount = likeCountSnap.hasData ? likeCountSnap.data!.docs.length : 0;
-                  return StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance.collection('comments').where('productId', isEqualTo: productId).snapshots(),
-                    builder: (context, commentCountSnap) {
-                      final commentCount = commentCountSnap.hasData ? commentCountSnap.data!.docs.length : 0;
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF59F797).withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF59F797).withOpacity(0.2)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem(Icons.favorite, likeCount.toString(), 'Likes'),
-                            _buildStatItem(Icons.comment, commentCount.toString(), 'Comments'),
-                            _buildStatItem(Icons.visibility, views.toString(), 'Views'),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              Icon(Icons.people, size: 16, color: Color(0xFF59F797)),
+              SizedBox(width: 8),
+              Text('Customer Insights', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+
+          // Comments section
+          const Text('Recent Comments', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('comments')
+                .where('productId', isEqualTo: productId)
+                .snapshots(), // No orderBy to avoid index requirement, we'll sort in Dart
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const SizedBox(height: 40, child: Center(child: CircularProgressIndicator()));
+              }
+              var comments = snapshot.data!.docs;
+              // sort descending by createdAt locally
+              comments.sort((a, b) {
+                final aDate = (a.get('createdAt') as Timestamp).toDate();
+                final bDate = (b.get('createdAt') as Timestamp).toDate();
+                return bDate.compareTo(aDate);
+              });
+              comments = comments.take(5).toList();
+
+              if (comments.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                  child: const Center(child: Text('No comments yet', style: TextStyle(fontSize: 11, color: Colors.grey))),
+                );
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: comments.length,
+                itemBuilder: (context, index) {
+                  final comment = comments[index];
+                  final sentiment = comment.get('sentiment') ?? 'neutral';
+                  final userId = comment.get('userId');
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+                    builder: (context, userSnap) {
+                      String userName = 'User';
+                      if (userSnap.hasData && userSnap.data != null) {
+                        final userData = userSnap.data!.data() as Map<String, dynamic>;
+                        userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
+                        if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
+                      }
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: _getSentimentColor(sentiment).withOpacity(0.1),
+                                    child: Icon(_getSentimentIcon(sentiment), size: 12, color: _getSentimentColor(sentiment)),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: Text(userName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                                  Text(_formatDate((comment.get('createdAt') as Timestamp).toDate()),
+                                      style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(comment.get('comment') ?? '', style: const TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+
+          const SizedBox(height: 12),
+
+          // Likes section
+          const Text('Recent Likes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('likes')
+                .where('productId', isEqualTo: productId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const SizedBox(height: 40, child: Center(child: CircularProgressIndicator()));
+              }
+              var likes = snapshot.data!.docs;
+              likes.sort((a, b) {
+                final aDate = (a.get('createdAt') as Timestamp).toDate();
+                final bDate = (b.get('createdAt') as Timestamp).toDate();
+                return bDate.compareTo(aDate);
+              });
+              likes = likes.take(10).toList();
+
+              if (likes.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                  child: const Center(child: Text('No likes yet', style: TextStyle(fontSize: 11, color: Colors.grey))),
+                );
+              }
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: likes.map((like) {
+                  final userId = like.get('userId');
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+                    builder: (context, userSnap) {
+                      String userName = 'User';
+                      if (userSnap.hasData && userSnap.data != null) {
+                        final userData = userSnap.data!.data() as Map<String, dynamic>;
+                        userName = '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
+                        if (userName.isEmpty) userName = userData['email']?.split('@').first ?? 'User';
+                      }
+                      return Chip(
+                        avatar: const Icon(Icons.favorite, size: 12, color: Colors.red),
+                        label: Text(userName, style: const TextStyle(fontSize: 10)),
+                        backgroundColor: Colors.red.withOpacity(0.05),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                      );
+                    },
+                  );
+                }).toList(),
+              );
+            },
+          ),
+
+          const SizedBox(height: 12),
+
+          // Overall Stats (dynamic counts)
+          FutureBuilder<int>(
+            future: FirebaseFirestore.instance.collection('likes').where('productId', isEqualTo: productId).get().then((s) => s.docs.length),
+            builder: (context, likeCountSnap) {
+              final likeCount = likeCountSnap.data ?? 0;
+              return FutureBuilder<int>(
+                future: FirebaseFirestore.instance.collection('comments').where('productId', isEqualTo: productId).get().then((s) => s.docs.length),
+                builder: (context, commentCountSnap) {
+                  final commentCount = commentCountSnap.data ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF59F797).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF59F797).withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem(Icons.favorite, likeCount.toString(), 'Likes'),
+                        _buildStatItem(Icons.comment, commentCount.toString(), 'Comments'),
+                        _buildStatItem(Icons.visibility, productViews.toString(), 'Views'),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -858,10 +844,13 @@ class _ProductsScreenState extends State<_ProductsScreen> {
                 } catch (_) {}
               }
               await FirebaseFirestore.instance.collection('products').doc(productId).delete();
+
               final comments = await FirebaseFirestore.instance.collection('comments').where('productId', isEqualTo: productId).get();
               for (var c in comments.docs) await c.reference.delete();
+
               final likes = await FirebaseFirestore.instance.collection('likes').where('productId', isEqualTo: productId).get();
               for (var l in likes.docs) await l.reference.delete();
+
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
