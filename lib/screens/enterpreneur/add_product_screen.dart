@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,17 +28,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String? _uploadProgress;
   final ImagePicker _picker = ImagePicker();
 
+  // Explicit bucket to avoid CORS / resolution issues
+  late final FirebaseStorage _storage;
+  late final Reference _storageRef;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use the exact bucket name from Firebase Console
+    _storage = FirebaseStorage.instanceFor(
+      bucket: 'gs://smart-app-33082.firebasestorage.app', // CHANGE THIS TO YOUR BUCKET NAME
+    );
+    _storageRef = _storage.ref();
+  }
+
   Future<void> _pickImageFromGallery() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 70, // Reduced quality for faster upload
+        imageQuality: 70,
       );
       if (pickedFile != null) {
         setState(() {
           _selectedImage = pickedFile;
         });
-        // Read bytes in background to not block UI
         final bytes = await pickedFile.readAsBytes();
         setState(() {
           _imageBytes = bytes;
@@ -125,14 +137,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       final bytes = await _selectedImage!.readAsBytes();
       final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('product_images/$fileName');
+      final fileRef = _storageRef.child('product_images/$fileName');
 
-      // Upload with timeout (60 seconds)
-      final uploadTask = storageRef.putData(bytes);
+      final uploadTask = fileRef.putData(bytes);
 
-      // Listen to progress
       uploadTask.snapshotEvents.listen((snapshot) {
         final progress = snapshot.bytesTransferred / snapshot.totalBytes;
         if (mounted) {
@@ -142,19 +150,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
       });
 
-      // Wait for completion with timeout
-      final snapshot = await uploadTask.timeout(const Duration(seconds: 60));
-
+      final snapshot = await uploadTask;
       setState(() {
         _uploadProgress = 'Getting download URL...';
       });
-
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
       setState(() {
         _uploadProgress = null;
       });
-
       return downloadUrl;
     } catch (e) {
       debugPrint('Upload error: $e');
@@ -176,9 +180,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     setState(() => _isUploading = true);
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    // Show a progress dialog
+    // Show progress dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -190,18 +192,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 16),
             StreamBuilder<String?>(
               stream: Stream.value(_uploadProgress),
-              builder: (context, snapshot) {
-                return Text(
-                  snapshot.data ?? 'Processing...',
-                  style: const TextStyle(fontSize: 12),
-                );
-              },
+              builder: (context, snapshot) => Text(
+                snapshot.data ?? 'Processing...',
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
         ),
       ),
     );
 
+    final authService = Provider.of<AuthService>(context, listen: false);
     String? imageUrl;
     if (_selectedImage != null) {
       imageUrl = await _uploadImage();
@@ -228,12 +229,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     try {
       await FirebaseFirestore.instance.collection('products').add(product.toMap());
       if (mounted) {
-        Navigator.pop(context); // close dialog
+        Navigator.pop(context); // close progress dialog
         _showSuccessSnackBar('Product added successfully!');
-        Navigator.pop(context, true); // go back
+        Navigator.pop(context, true); // go back to dashboard
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context); // close dialog
+      if (mounted) Navigator.pop(context);
       _showErrorSnackBar('Error: $e');
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -382,6 +383,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+
                 // Category
                 Container(
                   decoration: BoxDecoration(
@@ -402,7 +404,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Name
+
+                // Product Name
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -420,6 +423,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
                 // Description
                 Container(
                   decoration: BoxDecoration(
@@ -439,6 +443,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Price and Stock Row (TZS)
                 Row(
                   children: [
                     Expanded(
@@ -452,8 +458,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           controller: _priceController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            labelText: 'Price *',
+                            labelText: 'Price (TZS) *',
                             prefixIcon: Icon(Icons.attach_money, color: Color(0xFF59F797)),
+                            hintText: 'e.g., 5000',
                             border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                           ),
                           validator: (v) {
@@ -478,6 +485,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Stock *',
                             prefixIcon: Icon(Icons.inventory, color: Color(0xFF59F797)),
+                            hintText: 'Quantity',
                             border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                           ),
                           validator: (v) {
@@ -491,6 +499,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
+
+                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
