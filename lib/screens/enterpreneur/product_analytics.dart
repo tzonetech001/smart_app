@@ -6,7 +6,9 @@ import '../../services/auth_service.dart';
 import '../../models/product_model.dart';
 
 class ProductAnalytics extends StatefulWidget {
-  const ProductAnalytics({super.key});
+  final int initialSubmenuIndex;
+
+  const ProductAnalytics({super.key, this.initialSubmenuIndex = 0});
 
   @override
   State<ProductAnalytics> createState() => _ProductAnalyticsState();
@@ -15,328 +17,188 @@ class ProductAnalytics extends StatefulWidget {
 class _ProductAnalyticsState extends State<ProductAnalytics> {
   String? _selectedProductId;
   List<ProductModel> _products = [];
-  int _selectedSidebarIndex = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late int _selectedSubmenuIndex;
 
-  final List<Map<String, dynamic>> _sidebarItems = [
-    {
-      'icon': Icons.speed,
-      'title': 'Product Performance Level',
-      'description': 'View product performance metrics and engagement scores'
-    },
-    {
-      'icon': Icons.trending_up,
-      'title': 'Market Trends',
-      'description': 'Analyze market trends and product popularity'
-    },
-    {
-      'icon': Icons.people,
-      'title': 'Customer Insights',
-      'description': 'See customer comments, likes, and sentiment analysis'
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _selectedSubmenuIndex = widget.initialSubmenuIndex;
+  }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
 
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: const Text('Product Analytics',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF59F797),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-      ),
-      drawer: _buildSidebar(),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .where('entrepreneurId', isEqualTo: authService.currentUser?.id)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Container(
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          // Product Selector Dropdown - Fixed at top
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('products')
+                  .where('entrepreneurId', isEqualTo: authService.currentUser?.id)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          _products = snapshot.data!.docs.map((doc) {
-            return ProductModel.fromMap(
-                doc.id, doc.data() as Map<String, dynamic>);
-          }).toList();
+                _products = snapshot.data!.docs.map((doc) {
+                  return ProductModel.fromMap(
+                      doc.id, doc.data() as Map<String, dynamic>);
+                }).toList();
 
-          if (_products.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.analytics, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No products to analyze',
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  Text('Add products to see analytics',
-                      style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            );
-          }
+                if (_products.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.analytics, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No products to analyze',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('Add products to see analytics',
+                            style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  );
+                }
 
-          if (_selectedProductId == null && _products.isNotEmpty) {
-            _selectedProductId = _products.first.id;
-          }
+                if (_selectedProductId == null && _products.isNotEmpty) {
+                  _selectedProductId = _products.first.id;
+                }
 
-          final selectedProduct = _products.firstWhere(
-            (p) => p.id == _selectedProductId,
-            orElse: () => _products.first,
-          );
+                final selectedProduct = _products.firstWhere(
+                  (p) => p.id == _selectedProductId,
+                  orElse: () => _products.first,
+                );
 
-          return Row(
-            children: [
-              // Product List Sidebar (Left side - Product Selection) - FIXED OVERFLOW
-              Container(
-                width: 140,
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  border: Border(right: BorderSide(color: Colors.grey[200]!)),
-                ),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: _products.length,
-                  itemBuilder: (context, index) {
-                    final product = _products[index];
-                    final isSelected = _selectedProductId == product.id;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedProductId = product.id;
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF59F797).withOpacity(0.1)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF59F797)
-                                : Colors.grey[200]!,
+                return Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        // Product Dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedProductId,
+                              isExpanded: true,
+                              style: const TextStyle(fontSize: 12),
+                              items: _products.map((product) {
+                                return DropdownMenuItem(
+                                  value: product.id,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        height: 30,
+                                        width: 30,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: product.imageUrl != null
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(4),
+                                                child: Image.network(
+                                                  product.imageUrl!,
+                                                  width: 30,
+                                                  height: 30,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) =>
+                                                      const Icon(Icons.image, size: 16, color: Colors.grey),
+                                                ),
+                                              )
+                                            : const Icon(Icons.image, size: 16, color: Colors.grey),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          product.productName,
+                                          style: const TextStyle(fontSize: 12),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedProductId = value;
+                                });
+                              },
+                            ),
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize:
-                              MainAxisSize.min, // FIXED: Use min instead of max
-                          children: [
-                            Container(
-                              height: 40,
-                              width: 40,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF59F797)
-                                    : Colors.grey[300],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.shopping_bag,
-                                size: 22,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Flexible(
-                              // FIXED: Use Flexible instead of direct Text
-                              child: Text(
-                                product.productName,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isSelected
-                                      ? const Color(0xFF59F797)
-                                      : Colors.black87,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Main Content Area
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Product Header
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Container(
-                                height: 60,
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFF59F797).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.shopping_bag,
-                                  size: 35,
-                                  color: Color(0xFF59F797),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      selectedProduct.productName,
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      selectedProduct.category.displayName,
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.grey),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Added: ${_formatDate(selectedProduct.createdAt)}',
-                                      style: const TextStyle(
-                                          fontSize: 10, color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Dynamic Content Based on Sidebar Selection
-                      if (_selectedSidebarIndex == 0)
-                        _buildPerformanceContent(selectedProduct),
-                      if (_selectedSidebarIndex == 1)
-                        _buildMarketTrendsContent(selectedProduct),
-                      if (_selectedSidebarIndex == 2)
-                        _buildCustomerInsightsContent(selectedProduct.id),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                );
+              },
+            ),
+          ),
+          // Dynamic Content - Scrollable
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              physics: const BouncingScrollPhysics(),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('products')
+                    .where('entrepreneurId', isEqualTo: authService.currentUser?.id)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  _products = snapshot.data!.docs.map((doc) {
+                    return ProductModel.fromMap(
+                        doc.id, doc.data() as Map<String, dynamic>);
+                  }).toList();
+
+                  if (_products.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  if (_selectedProductId == null && _products.isNotEmpty) {
+                    _selectedProductId = _products.first.id;
+                  }
+
+                  final selectedProduct = _products.firstWhere(
+                    (p) => p.id == _selectedProductId,
+                    orElse: () => _products.first,
+                  );
+
+                  return _buildDynamicContent(selectedProduct);
+                },
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSidebar() {
-    return Drawer(
-      child: Container(
-        color: Colors.white,
-        child: Column(
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-              decoration: const BoxDecoration(color: Color(0xFF59F797)),
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.analytics,
-                        size: 35, color: Color(0xFF59F797)),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Product Analytics',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_products.length} Products',
-                    style: const TextStyle(fontSize: 11, color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Sidebar Menu Items
-            Expanded(
-              child: ListView.separated(
-                itemCount: _sidebarItems.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final item = _sidebarItems[index];
-                  final isSelected = _selectedSidebarIndex == index;
-                  return ListTile(
-                    leading: Icon(item['icon'],
-                        color:
-                            isSelected ? const Color(0xFF59F797) : Colors.grey),
-                    title: Text(
-                      item['title'],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected
-                            ? const Color(0xFF59F797)
-                            : Colors.black87,
-                      ),
-                    ),
-                    subtitle: Text(
-                      item['description'],
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    selected: isSelected,
-                    selectedTileColor: const Color(0xFF59F797).withOpacity(0.1),
-                    onTap: () {
-                      setState(() {
-                        _selectedSidebarIndex = index;
-                      });
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+  Widget _buildDynamicContent(ProductModel selectedProduct) {
+    if (_selectedSubmenuIndex == 0) {
+      return _buildPerformanceContent(selectedProduct);
+    } else if (_selectedSubmenuIndex == 1) {
+      return _buildMarketTrendsContent(selectedProduct);
+    } else {
+      return _buildCustomerInsightsContent(selectedProduct.id);
+    }
   }
 
   // ==================== SECTION 1: PRODUCT PERFORMANCE LEVEL CONTENT ====================
@@ -346,7 +208,8 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       children: [
         // Performance Card
         Container(
-          padding: const EdgeInsets.all(20),
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF59F797), Color(0xFF3BC77A)],
@@ -359,10 +222,9 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Performance Level',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      style: TextStyle(color: Colors.white70, fontSize: 11)),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -370,7 +232,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                     child: Text(
                       product.performanceLevel,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: product.performanceLevel == 'HIGH PERFORMANCE'
                             ? Colors.green
@@ -394,20 +256,20 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
         // Engagement Metrics Grid
         const Text('Engagement Metrics',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.4,
           ),
           children: [
             _buildMetricCard('Rating', product.rating.toStringAsFixed(1),
@@ -433,19 +295,22 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           ],
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
         // Engagement Trend Chart
         const Text('Engagement Trend',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildEngagementChart(product),
+        SizedBox(
+          height: 200,
+          child: _buildEngagementChart(product),
+        ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
         // Performance Insights
         const Text('Performance Insights',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         _buildPerformanceInsights(product),
       ],
@@ -457,19 +322,16 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Market Position Card
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               children: [
                 const Text('Market Position',
-                    style:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('products')
@@ -492,27 +354,22 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                             .indexWhere((p) => p.id == currentProduct.id) +
                         1;
                     final total = allProducts.length;
-                    final percentile =
-                        total > 0 ? ((total - rank) / total * 100).round() : 0;
+                    final percentile = total > 0
+                        ? ((total - rank) / total * 100).round()
+                        : 0;
 
-                    return Column(
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildMarketStat('Rank', '#$rank of $total',
-                                Icons.leaderboard, Colors.blue),
-                            _buildMarketStat('Percentile', 'Top ${percentile}%',
-                                Icons.percent, const Color(0xFF59F797)),
-                            _buildMarketStat(
-                                'Score',
-                                currentProduct.engagementScore
-                                    .round()
-                                    .toString(),
-                                Icons.score,
-                                Colors.orange),
-                          ],
-                        ),
+                        _buildMarketStat('Rank', '#$rank of $total',
+                            Icons.leaderboard, Colors.blue),
+                        _buildMarketStat('Percentile', 'Top ${percentile}%',
+                            Icons.percent, const Color(0xFF59F797)),
+                        _buildMarketStat(
+                            'Score',
+                            currentProduct.engagementScore.round().toString(),
+                            Icons.score,
+                            Colors.orange),
                       ],
                     );
                   },
@@ -522,11 +379,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Top Competitors / Similar Products
         const Text('Similar Products in Market',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -546,18 +402,18 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                   doc.id, doc.data() as Map<String, dynamic>);
             }).toList();
 
-            similarProducts
-                .sort((a, b) => b.engagementScore.compareTo(a.engagementScore));
+            similarProducts.sort((a, b) =>
+                b.engagementScore.compareTo(a.engagementScore));
 
             if (similarProducts.isEmpty) {
               return Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12)),
                 child: const Center(
                     child: Text('No similar products found',
-                        style: TextStyle(fontSize: 12, color: Colors.grey))),
+                        style: TextStyle(fontSize: 11, color: Colors.grey))),
               );
             }
 
@@ -579,9 +435,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
+                      dense: true,
                       leading: Container(
-                        height: 40,
-                        width: 40,
+                        height: 35,
+                        width: 35,
                         decoration: BoxDecoration(
                           color: isCurrent
                               ? const Color(0xFF59F797).withOpacity(0.2)
@@ -590,7 +447,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                         ),
                         child: Icon(
                           Icons.shopping_bag,
-                          size: 22,
+                          size: 18,
                           color: isCurrent
                               ? const Color(0xFF59F797)
                               : Colors.grey[600],
@@ -599,34 +456,36 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                       title: Text(
                         product.productName,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight:
                               isCurrent ? FontWeight.bold : FontWeight.normal,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
                           '${product.likes} likes • ${product.views} views',
-                          style: const TextStyle(fontSize: 10)),
+                          style: const TextStyle(fontSize: 9)),
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             '\$${product.price.toStringAsFixed(2)}',
                             style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF59F797)),
                           ),
                           if (isCurrent)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                  horizontal: 4, vertical: 1),
                               decoration: BoxDecoration(
                                   color: const Color(0xFF59F797),
                                   borderRadius: BorderRadius.circular(4)),
                               child: const Text('Current',
                                   style: TextStyle(
-                                      fontSize: 8, color: Colors.white)),
+                                      fontSize: 7, color: Colors.white)),
                             ),
                         ],
                       ),
@@ -638,11 +497,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           },
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Market Opportunities
         const Text('Market Opportunities',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         _buildMarketOpportunities(currentProduct),
       ],
@@ -654,19 +512,16 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Customer Stats Overview
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               children: [
                 const Text('Customer Engagement Overview',
-                    style:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
                 FutureBuilder<List<QuerySnapshot<Map<String, dynamic>>>>(
                   future: Future.wait([
                     FirebaseFirestore.instance
@@ -709,11 +564,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Sentiment Analysis Section
         const Text('Sentiment Analysis',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -748,78 +602,77 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
 
             return Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              const Icon(Icons.sentiment_very_satisfied,
-                                  color: Colors.green, size: 32),
-                              const SizedBox(height: 4),
-                              Text('$positivePercent%',
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green)),
-                              Text('Positive',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
-                              LinearProgressIndicator(
-                                value: positivePercent / 100,
-                                backgroundColor: Colors.grey[200],
-                                color: Colors.green,
-                              ),
-                            ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.sentiment_very_satisfied,
+                              color: Colors.green, size: 28),
+                          const SizedBox(height: 4),
+                          Text('$positivePercent%',
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green)),
+                          Text('Positive',
+                              style: const TextStyle(
+                                  fontSize: 9, color: Colors.grey)),
+                          LinearProgressIndicator(
+                            value: positivePercent / 100,
+                            backgroundColor: Colors.grey[200],
+                            color: Colors.green,
+                            minHeight: 3,
                           ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              const Icon(Icons.sentiment_neutral,
-                                  color: Colors.grey, size: 32),
-                              const SizedBox(height: 4),
-                              Text('$neutralPercent%',
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey)),
-                              Text('Neutral',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
-                              LinearProgressIndicator(
-                                value: neutralPercent / 100,
-                                backgroundColor: Colors.grey[200],
-                                color: Colors.grey,
-                              ),
-                            ],
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.sentiment_neutral,
+                              color: Colors.grey, size: 28),
+                          const SizedBox(height: 4),
+                          Text('$neutralPercent%',
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey)),
+                          Text('Neutral',
+                              style: const TextStyle(
+                                  fontSize: 9, color: Colors.grey)),
+                          LinearProgressIndicator(
+                            value: neutralPercent / 100,
+                            backgroundColor: Colors.grey[200],
+                            color: Colors.grey,
+                            minHeight: 3,
                           ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              const Icon(Icons.sentiment_very_dissatisfied,
-                                  color: Colors.red, size: 32),
-                              const SizedBox(height: 4),
-                              Text('$negativePercent%',
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red)),
-                              Text('Negative',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
-                              LinearProgressIndicator(
-                                value: negativePercent / 100,
-                                backgroundColor: Colors.grey[200],
-                                color: Colors.red,
-                              ),
-                            ],
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.sentiment_very_dissatisfied,
+                              color: Colors.red, size: 28),
+                          const SizedBox(height: 4),
+                          Text('$negativePercent%',
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red)),
+                          Text('Negative',
+                              style: const TextStyle(
+                                  fontSize: 9, color: Colors.grey)),
+                          LinearProgressIndicator(
+                            value: negativePercent / 100,
+                            backgroundColor: Colors.grey[200],
+                            color: Colors.red,
+                            minHeight: 3,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -828,11 +681,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
           },
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Recent Customer Comments
         const Text('Recent Customer Comments',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -850,13 +702,13 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
 
             if (comments.isEmpty) {
               return Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12)),
                 child: const Center(
                     child: Text('No comments yet',
-                        style: TextStyle(fontSize: 12, color: Colors.grey))),
+                        style: TextStyle(fontSize: 11, color: Colors.grey))),
               );
             }
 
@@ -870,28 +722,28 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                 final userName = comment.get('userName') ?? 'Anonymous';
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+                  margin: const EdgeInsets.only(bottom: 6),
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             CircleAvatar(
-                              radius: 16,
+                              radius: 12,
                               backgroundColor: _getSentimentColor(sentiment)
                                   .withOpacity(0.1),
                               child: Icon(_getSentimentIcon(sentiment),
-                                  size: 14,
+                                  size: 12,
                                   color: _getSentimentColor(sentiment)),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 userName,
                                 style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold),
+                                    fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ),
                             Text(
@@ -899,13 +751,13 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                                   (comment.get('createdAt') as Timestamp)
                                       .toDate()),
                               style: const TextStyle(
-                                  fontSize: 9, color: Colors.grey),
+                                  fontSize: 8, color: Colors.grey),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(comment.get('comment') ?? '',
-                            style: const TextStyle(fontSize: 11)),
+                            style: const TextStyle(fontSize: 10)),
                       ],
                     ),
                   ),
@@ -924,12 +776,12 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       children: [
         Text(value,
             style: const TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white)),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10)),
+            style: const TextStyle(color: Colors.white70, fontSize: 9)),
       ],
     );
   }
@@ -938,18 +790,18 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       String title, String value, IconData icon, Color color, String suffix) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 28, color: color),
-            const SizedBox(height: 8),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 4),
             Text('$value$suffix',
                 style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 4),
+                    fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 2),
             Text(title,
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                style: const TextStyle(fontSize: 9, color: Colors.grey),
                 textAlign: TextAlign.center),
           ],
         ),
@@ -961,12 +813,12 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       String title, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, size: 24, color: color),
-        const SizedBox(height: 4),
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 2),
         Text(value,
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-        Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+        Text(title, style: const TextStyle(fontSize: 8, color: Colors.grey)),
       ],
     );
   }
@@ -975,12 +827,12 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       String title, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, size: 24, color: color),
-        const SizedBox(height: 4),
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 2),
         Text(value,
             style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+        Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
       ],
     );
   }
@@ -997,8 +849,8 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
     ];
 
     return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
+      height: 180,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1011,9 +863,9 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 40,
+                reservedSize: 30,
                 getTitlesWidget: (value, meta) => Text(value.toInt().toString(),
-                    style: const TextStyle(fontSize: 10)),
+                    style: const TextStyle(fontSize: 8)),
               ),
             ),
             bottomTitles: AxisTitles(
@@ -1031,7 +883,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
                   ];
                   if (value.toInt() >= 0 && value.toInt() < days.length) {
                     return Text(days[value.toInt()],
-                        style: const TextStyle(fontSize: 10));
+                        style: const TextStyle(fontSize: 8));
                   }
                   return const Text('');
                 },
@@ -1050,7 +902,7 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
               }),
               isCurved: true,
               color: const Color(0xFF59F797),
-              barWidth: 3,
+              barWidth: 2,
               dotData: const FlDotData(show: true),
               belowBarData: BarAreaData(
                 show: true,
@@ -1093,10 +945,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       itemCount: insights.length,
       itemBuilder: (context, index) {
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 6),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(insights[index], style: const TextStyle(fontSize: 11)),
+            padding: const EdgeInsets.all(10),
+            child: Text(insights[index], style: const TextStyle(fontSize: 10)),
           ),
         );
       },
@@ -1138,11 +990,10 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
       itemCount: opportunities.length,
       itemBuilder: (context, index) {
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 6),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(opportunities[index],
-                style: const TextStyle(fontSize: 11)),
+            padding: const EdgeInsets.all(10),
+            child: Text(opportunities[index], style: const TextStyle(fontSize: 10)),
           ),
         );
       },
@@ -1153,10 +1004,6 @@ class _ProductAnalyticsState extends State<ProductAnalytics> {
     if (product.views == 0) return '0';
     double rate = (product.likes / product.views) * 100;
     return rate.toStringAsFixed(1);
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 
   String _formatDateTime(DateTime date) {
