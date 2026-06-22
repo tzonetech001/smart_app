@@ -22,7 +22,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isLiked = false;
   bool _isLoading = false;
   final AIService _aiService = AIService();
-
   @override
   void initState() {
     super.initState();
