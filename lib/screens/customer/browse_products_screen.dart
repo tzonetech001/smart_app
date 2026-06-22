@@ -6,7 +6,6 @@ import '../../widgets/product_card.dart';
 
 class BrowseProductsScreen extends StatefulWidget {
   final ProductCategory? initialCategory;
-
   const BrowseProductsScreen({super.key, this.initialCategory});
 
   @override
