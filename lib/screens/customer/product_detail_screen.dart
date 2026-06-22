@@ -15,7 +15,6 @@ class ProductDetailScreen extends StatefulWidget {
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
-
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
   double _userRating = 0;
