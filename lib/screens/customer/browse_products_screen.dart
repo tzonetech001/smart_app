@@ -37,7 +37,6 @@ class _BrowseProductsScreenState extends State<BrowseProductsScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Column(
