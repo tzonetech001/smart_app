@@ -11,7 +11,6 @@ class BrowseProductsScreen extends StatefulWidget {
   @override
   State<BrowseProductsScreen> createState() => _BrowseProductsScreenState();
 }
-
 class _BrowseProductsScreenState extends State<BrowseProductsScreen> {
   ProductCategory? _selectedCategory;
   String _searchQuery = '';
