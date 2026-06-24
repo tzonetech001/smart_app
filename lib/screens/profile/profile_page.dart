@@ -112,7 +112,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   void _showPaymentHistory() {
     showModalBottomSheet(

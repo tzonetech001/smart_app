@@ -127,7 +127,7 @@ class NotificationService {
         'userId': entrepreneurId,
         'title': '🛍️ New Order Received!',
         'message':
-            '$customerName placed a new order worth TZS ${amount.toStringAsFixed(0)}.',
+            '$customerName placed a new order worth Tsh ${amount.toStringAsFixed(0)}.',
         'type': 'new_order',
         'isRead': false,
         'productId': null,
@@ -150,7 +150,7 @@ class NotificationService {
         'userId': entrepreneurId,
         'title': '💳 Payment Pending Approval',
         'message':
-            'A payment of TZS ${amount.toStringAsFixed(0)} for order #${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId} is awaiting confirmation.',
+            'A payment of Tsh ${amount.toStringAsFixed(0)} for order #${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId} is awaiting confirmation.',
         'type': 'payment_pending',
         'isRead': false,
         'productId': null,
@@ -173,7 +173,7 @@ class NotificationService {
         'userId': entrepreneurId,
         'title': '✅ Payment Confirmed!',
         'message':
-            'Payment of TZS ${amount.toStringAsFixed(0)} for order #${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId} has been approved.',
+            'Payment of Tsh ${amount.toStringAsFixed(0)} for order #${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId} has been approved.',
         'type': 'payment_approved',
         'isRead': false,
         'productId': null,

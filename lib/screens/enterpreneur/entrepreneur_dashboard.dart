@@ -475,7 +475,7 @@ class _ProductsScreenState extends State<_ProductsScreen> {
   String _searchQuery = '';
   String? _expandedProductId;
 
-  String _formatTZS(double price) => 'TZS ${price.toStringAsFixed(0)}';
+  String _formatTZS(double price) => 'Tsh ${price.toStringAsFixed(0)}';
 
   @override
   Widget build(BuildContext context) {

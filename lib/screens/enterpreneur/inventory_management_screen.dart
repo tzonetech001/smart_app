@@ -17,7 +17,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
   String _selectedFilter = 'all'; // all | low | out | in_stock
   String _selectedSort = 'demand'; // demand | stock_asc | stock_desc | revenue | sold
 
-  String _formatTZS(double v) => 'TZS ${v.toStringAsFixed(0)}';
+  String _formatTZS(double v) => 'Tsh ${v.toStringAsFixed(0)}';
 
   Color _stockColor(int stock) {
     if (stock == 0) return Colors.red;

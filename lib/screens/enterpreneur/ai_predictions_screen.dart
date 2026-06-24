@@ -534,7 +534,7 @@ class _EntrepreneurProductAnalysisState
                     Icons.shopping_bag, Colors.blue),
                 _buildOverviewMetric(
                     'Revenue',
-                    'TZS ${totalRevenue.toStringAsFixed(0)}',
+                    'Tsh ${totalRevenue.toStringAsFixed(0)}',
                     Icons.attach_money,
                     const Color(0xFF59F797)),
                 _buildOverviewMetric('Orders', totalOrders.toString(),
@@ -542,8 +542,8 @@ class _EntrepreneurProductAnalysisState
                 _buildOverviewMetric(
                     'Avg Order',
                     totalOrders > 0
-                        ? 'TZS ${(totalRevenue / totalOrders).toStringAsFixed(0)}'
-                        : 'TZS 0',
+                        ? 'Tsh ${(totalRevenue / totalOrders).toStringAsFixed(0)}'
+                        : 'Tsh 0',
                     Icons.trending_up,
                     Colors.purple),
               ],
@@ -659,7 +659,7 @@ class _EntrepreneurProductAnalysisState
                 reservedSize: 40,
                 getTitlesWidget: (value, meta) {
                   return Text(
-                    'TZS ${value.toInt()}',
+                    'Tsh ${value.toInt()}',
                     style: const TextStyle(fontSize: 8),
                   );
                 },
@@ -838,7 +838,7 @@ class _EntrepreneurProductAnalysisState
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${trend['totalSales']} units • ${trend['totalRevenue'] > 0 ? 'TZS ${(trend['totalRevenue'] as double).toStringAsFixed(0)}' : 'No sales'}',
+                          '${trend['totalSales']} units • ${trend['totalRevenue'] > 0 ? 'Tsh ${(trend['totalRevenue'] as double).toStringAsFixed(0)}' : 'No sales'}',
                           style:
                               TextStyle(fontSize: 9, color: Colors.grey[600]),
                         ),

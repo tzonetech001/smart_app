@@ -16,7 +16,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   Future<void> _updateQuantity(String productId, int oldQty, int change) async {
     final userId = _auth.currentUser?.uid;

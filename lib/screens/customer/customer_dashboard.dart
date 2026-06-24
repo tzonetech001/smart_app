@@ -355,7 +355,7 @@ class _HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<_HomeScreen> {
   final _userId = FirebaseAuth.instance.currentUser?.uid;
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   void _showLocationPicker(BuildContext context) {
     String tempDistrict = widget.selectedDistrict;
@@ -1067,7 +1067,7 @@ class _HomeScreenState extends State<_HomeScreen> {
                       : Container(width: 45, height: 45, color: Colors.grey[200], child: const Icon(Icons.image)),
                 ),
                 title: Text(product.productName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                subtitle: Text('TZS ${product.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: Color(0xFF3BC77A), fontWeight: FontWeight.bold)),
+                subtitle: Text('Tsh ${product.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: Color(0xFF3BC77A), fontWeight: FontWeight.bold)),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                 onTap: () {
                   Navigator.push(

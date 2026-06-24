@@ -240,7 +240,7 @@ class _TrendingProductsScreenState extends State<TrendingProductsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
+                                  'Tsh ${product.price.toStringAsFixed(0)}',
                                   style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,

@@ -13,7 +13,7 @@ class OrderConfirmationScreen extends StatelessWidget {
     required this.paymentMethod,
   });
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';

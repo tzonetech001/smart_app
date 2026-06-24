@@ -285,7 +285,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      '\$${product.price.toStringAsFixed(2)}',
+                                      'Tsh ${product.price.toStringAsFixed(0)}',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -516,7 +516,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
               const SizedBox(height: 12),
               _buildDetailRow('Category', product.category.displayName),
               _buildDetailRow('Entrepreneur', product.entrepreneurName ?? 'Unknown'),
-              _buildDetailRow('Price', '\$${product.price.toStringAsFixed(2)}'),
+              _buildDetailRow('Price', 'Tsh ${product.price.toStringAsFixed(0)}'),
               _buildDetailRow('Stock', product.stock.toString()),
               _buildDetailRow('Likes', product.likes.toString()),
               _buildDetailRow('Comments', product.comments.toString()),
@@ -702,7 +702,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                             style: const TextStyle(fontSize: 12),
                             decoration: const InputDecoration(
                               labelText: 'Price *',
-                              prefixText: '\$ ',
+                              prefixText: 'Tsh ',
                               labelStyle: TextStyle(fontSize: 12),
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -903,7 +903,7 @@ class _AdminProductManagementState extends State<AdminProductManagement> {
                             style: const TextStyle(fontSize: 12),
                             decoration: const InputDecoration(
                               labelText: 'Price *',
-                              prefixText: '\$ ',
+                              prefixText: 'Tsh ',
                               labelStyle: TextStyle(fontSize: 12),
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

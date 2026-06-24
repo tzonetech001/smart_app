@@ -375,8 +375,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       controller: _priceController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Price (TZS)',
-                        prefixText: 'TZS ',
+                        labelText: 'Price (Tsh)',
+                        prefixText: 'Tsh ',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),

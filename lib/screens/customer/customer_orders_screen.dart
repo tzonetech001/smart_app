@@ -16,7 +16,7 @@ class CustomerOrdersScreen extends StatefulWidget {
 class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
   final _userId = FirebaseAuth.instance.currentUser?.uid;
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';

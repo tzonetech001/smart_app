@@ -14,7 +14,7 @@ class _EntrepreneurPaymentsScreenState extends State<EntrepreneurPaymentsScreen>
   final String? _userId = FirebaseAuth.instance.currentUser?.uid;
   String _selectedFilter = 'all';
 
-  String _formatTZS(double v) => 'TZS ${v.toStringAsFixed(0)}';
+  String _formatTZS(double v) => 'Tsh ${v.toStringAsFixed(0)}';
 
   Color _getPaymentStatusColor(String status) {
     switch (status) {

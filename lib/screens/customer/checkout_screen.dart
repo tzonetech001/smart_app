@@ -63,7 +63,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  String _formatCurrency(double amount) => 'TZS ${amount.toStringAsFixed(0)}';
+  String _formatCurrency(double amount) => 'Tsh ${amount.toStringAsFixed(0)}';
 
   void _nextStep() {
     if (_currentStep == 0) {

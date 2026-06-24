@@ -16,7 +16,7 @@ class _EntrepreneurOrdersScreenState extends State<EntrepreneurOrdersScreen> {
   String _selectedStatusFilter = 'all';
   String _selectedSort = 'date'; // date | amount | customer
 
-  String _formatTZS(double v) => 'TZS ${v.toStringAsFixed(0)}';
+  String _formatTZS(double v) => 'Tsh ${v.toStringAsFixed(0)}';
 
   Color _getStatusColor(OrderStatus status) {
     switch (status) {
