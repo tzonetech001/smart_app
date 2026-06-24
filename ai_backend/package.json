@@ -1,0 +1,16 @@
+{
+  "name": "smart-business-analytics-ai-backend",
+  "version": "1.0.0",
+  "description": "Advanced AI Prediction Backend for Smart Business Analytics",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "firebase-admin": "^12.0.0"
+  }
+}

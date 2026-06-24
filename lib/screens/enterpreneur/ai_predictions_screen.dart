@@ -1,662 +1,706 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../models/product_model.dart';
+import '../../models/order_model.dart';
 
-class AIPredictionsScreen extends StatefulWidget {
-  const AIPredictionsScreen({super.key});
+class EntrepreneurProductAnalysis extends StatefulWidget {
+  const EntrepreneurProductAnalysis({super.key});
 
   @override
-  State<AIPredictionsScreen> createState() => _AIPredictionsScreenState();
+  State<EntrepreneurProductAnalysis> createState() =>
+      _EntrepreneurProductAnalysisState();
 }
 
-class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
+class _EntrepreneurProductAnalysisState
+    extends State<EntrepreneurProductAnalysis> {
+  final String? _userId = FirebaseAuth.instance.currentUser?.uid;
+  String _selectedProductId = '';
+  String _selectedTimeframe = 'month';
   bool _isLoading = true;
+
   List<ProductModel> _products = [];
-  List<ProductPredictionData> _predictions = [];
-  int _selectedProductIndex = 0;
+  List<OrderModel> _orders = [];
+  Map<String, dynamic> _productStats = {};
+  List<Map<String, dynamic>> _salesData = [];
+  List<Map<String, dynamic>> _marketTrends = [];
+
+  final List<String> _timeframes = ['Week', 'Month', 'Quarter', 'Year'];
 
   @override
   void initState() {
     super.initState();
-    _loadAllData();
+    _loadData();
   }
 
-  Future<void> _loadAllData() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    // Get entrepreneur's products
+    // Load products
     final productsSnapshot = await FirebaseFirestore.instance
         .collection('products')
-        .where('entrepreneurId', isEqualTo: authService.currentUser?.id)
+        .where('entrepreneurId', isEqualTo: _userId)
         .get();
 
     _products = productsSnapshot.docs.map((doc) {
       return ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
     }).toList();
 
-    // Generate predictions for each product
-    for (var product in _products) {
-      final prediction = await _generateProductPrediction(product);
-      _predictions.add(prediction);
+    // Load orders
+    final ordersSnapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('entrepreneurId', isEqualTo: _userId)
+        .get();
+
+    _orders = ordersSnapshot.docs.map((doc) {
+      return OrderModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList();
+
+    // Select first product if available
+    if (_products.isNotEmpty && _selectedProductId.isEmpty) {
+      _selectedProductId = _products.first.id;
     }
+
+    // Calculate product stats
+    _calculateProductStats();
+
+    // Generate sales data
+    _generateSalesData();
+
+    // Generate market trends
+    _generateMarketTrends();
 
     setState(() => _isLoading = false);
   }
 
-  Future<ProductPredictionData> _generateProductPrediction(
-      ProductModel product) async {
-    // Get sales history for this product
-    final salesHistory = await _getProductSalesHistory(product.id);
+  void _calculateProductStats() {
+    _productStats = {};
 
-    // Calculate metrics
-    final double engagementScore = product.engagementScore.toDouble();
-    final int engagementScoreInt = engagementScore.round();
-    final views = product.views.toInt();
-    final likes = product.likes.toInt();
-    final comments = product.comments;
-    final rating = product.rating;
-    final stock = product.stock.toInt();
-    final price = product.price;
+    for (var product in _products) {
+      final productOrders = _orders.where((o) {
+        return o.items.any((item) => item.productId == product.id);
+      }).toList();
 
-    // Sales Forecast Calculation
-    double forecastGrowth =
-        _calculateForecastGrowth(salesHistory, engagementScore);
-    int predictedSales = _calculatePredictedSales(salesHistory, forecastGrowth);
+      final totalSold = productOrders.fold<int>(0, (sum, order) {
+        final item = order.items.firstWhere(
+          (i) => i.productId == product.id,
+          orElse: () =>
+              OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+        );
+        return sum + item.quantity;
+      });
 
-    // Demand Score Calculation (0-100)
-    int demandScore =
-        _calculateDemandScore(engagementScore, views, likes, stock, rating);
-    String demandLevel = _getDemandLevel(demandScore);
-    Color demandColor = _getDemandColor(demandScore);
+      final totalRevenue = productOrders.fold<double>(0, (sum, order) {
+        final item = order.items.firstWhere(
+          (i) => i.productId == product.id,
+          orElse: () =>
+              OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+        );
+        return sum + (item.price * item.quantity);
+      });
 
-    // Generate Recommendations
-    List<Recommendation> recommendations = _generateRecommendations(product,
-        demandScore, engagementScore, stock, views, likes, rating, price);
+      final totalOrders = productOrders.length;
 
-    return ProductPredictionData(
-      productId: product.id,
-      productName: product.productName,
-      productImage: product.imageUrl,
-      productCategory: product.category.displayName,
-      price: price,
-      stock: stock,
-      rating: rating,
-      forecastGrowth: forecastGrowth,
-      predictedSales: predictedSales,
-      demandScore: demandScore,
-      demandLevel: demandLevel,
-      demandColor: demandColor,
-      recommendations: recommendations,
-      engagementScore: engagementScoreInt,
-      views: views,
-      likes: likes,
-      comments: comments,
+      _productStats[product.id] = {
+        'product': product,
+        'totalSold': totalSold,
+        'totalRevenue': totalRevenue,
+        'totalOrders': totalOrders,
+        'performanceLevel': _getPerformanceLevel(totalSold, totalRevenue),
+        'demandLevel': _getDemandLevel(totalOrders, totalSold),
+      };
+    }
+  }
+
+  String _getPerformanceLevel(int totalSold, double totalRevenue) {
+    if (totalSold > 100 && totalRevenue > 5000) {
+      return 'HIGH';
+    } else if (totalSold > 30 && totalRevenue > 1000) {
+      return 'MEDIUM';
+    } else {
+      return 'LOW';
+    }
+  }
+
+  String _getDemandLevel(int totalOrders, int totalSold) {
+    if (totalOrders > 20 && totalSold > 50) {
+      return 'VERY HIGH';
+    } else if (totalOrders > 10 && totalSold > 20) {
+      return 'HIGH';
+    } else if (totalOrders > 5 && totalSold > 10) {
+      return 'MEDIUM';
+    } else {
+      return 'LOW';
+    }
+  }
+
+  void _generateSalesData() {
+    if (_products.isEmpty) {
+      _salesData = [];
+      return;
+    }
+
+    final product = _products.firstWhere(
+      (p) => p.id == _selectedProductId,
+      orElse: () => _products.first,
     );
+
+    // Get orders for this product
+    final productOrders = _orders.where((o) {
+      return o.items.any((item) => item.productId == product.id);
+    }).toList();
+
+    // Group by date
+    final Map<DateTime, double> dailySales = {};
+
+    for (var order in productOrders) {
+      final date = DateTime(
+          order.orderDate.year, order.orderDate.month, order.orderDate.day);
+      final item = order.items.firstWhere(
+        (i) => i.productId == product.id,
+        orElse: () =>
+            OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+      );
+      final amount = item.price * item.quantity;
+      dailySales[date] = (dailySales[date] ?? 0) + amount;
+    }
+
+    // Sort dates and convert to list
+    final sortedDates = dailySales.keys.toList()..sort();
+    final now = DateTime.now();
+
+    // Limit based on timeframe
+    int limit = 30;
+    if (_selectedTimeframe == 'week')
+      limit = 7;
+    else if (_selectedTimeframe == 'month')
+      limit = 30;
+    else if (_selectedTimeframe == 'quarter')
+      limit = 90;
+    else if (_selectedTimeframe == 'year') limit = 365;
+
+    final startDate = now.subtract(Duration(days: limit));
+
+    _salesData = [];
+    for (int i = 0; i < limit; i++) {
+      final date = startDate.add(Duration(days: i));
+      final dateKey = DateTime(date.year, date.month, date.day);
+      final amount = dailySales[dateKey] ?? 0;
+      _salesData.add({
+        'date': date,
+        'amount': amount,
+        'label': '${date.day}/${date.month}',
+      });
+    }
   }
 
-  double _calculateForecastGrowth(
-      List<double> salesHistory, double engagementScore) {
-    if (salesHistory.length >= 4) {
-      // Use weighted moving average
-      final weights = [0.4, 0.3, 0.2, 0.1];
-      double weightedSum = 0;
-      for (int i = 0; i < 4 && i < salesHistory.length; i++) {
-        weightedSum += salesHistory[i] * weights[i];
+  void _generateMarketTrends() {
+    final now = DateTime.now();
+    final monthAgo = now.subtract(const Duration(days: 30));
+
+    _marketTrends = [];
+
+    // Calculate performance for each product
+    for (var product in _products) {
+      final productOrders = _orders.where((o) {
+        return o.items.any((item) => item.productId == product.id) &&
+            o.orderDate.isAfter(monthAgo);
+      }).toList();
+
+      final totalSales = productOrders.fold<int>(0, (sum, order) {
+        final item = order.items.firstWhere(
+          (i) => i.productId == product.id,
+          orElse: () =>
+              OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+        );
+        return sum + item.quantity;
+      });
+
+      final totalRevenue = productOrders.fold<double>(0, (sum, order) {
+        final item = order.items.firstWhere(
+          (i) => i.productId == product.id,
+          orElse: () =>
+              OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+        );
+        return sum + (item.price * item.quantity);
+      });
+
+      // Calculate growth compared to previous period
+      final previousMonth = now.subtract(const Duration(days: 60));
+      final previousOrders = _orders.where((o) {
+        return o.items.any((item) => item.productId == product.id) &&
+            o.orderDate.isAfter(previousMonth) &&
+            o.orderDate.isBefore(monthAgo);
+      }).toList();
+
+      final previousSales = previousOrders.fold<int>(0, (sum, order) {
+        final item = order.items.firstWhere(
+          (i) => i.productId == product.id,
+          orElse: () =>
+              OrderItem(productId: '', productName: '', price: 0, quantity: 0),
+        );
+        return sum + item.quantity;
+      });
+
+      double growth = 0;
+      if (previousSales > 0) {
+        growth = ((totalSales - previousSales) / previousSales) * 100;
       }
-      final recentAvg = weightedSum /
-          weights.take(salesHistory.length).fold(0, (a, b) => a + b);
-      final lastSale = salesHistory.first;
 
-      if (recentAvg > 0) {
-        double growth = ((lastSale - recentAvg) / recentAvg) * 100;
-        return growth.clamp(-30, 50).toDouble();
-      }
+      _marketTrends.add({
+        'productId': product.id,
+        'productName': product.productName,
+        'productImage': product.imageUrl,
+        'category': product.category.displayName,
+        'totalSales': totalSales,
+        'totalRevenue': totalRevenue,
+        'growth': growth,
+        'performance': _getPerformanceLevel(totalSales, totalRevenue),
+        'trend': growth > 20 ? 'HIGH' : (growth > 5 ? 'MEDIUM' : 'LOW'),
+        'orders': productOrders.length,
+      });
     }
 
-    // Fallback: Use engagement score
-    double growth = (engagementScore / 2000) * 60 - 20;
-    return growth.clamp(-30, 50).toDouble();
-  }
-
-  int _calculatePredictedSales(
-      List<double> salesHistory, double forecastGrowth) {
-    if (salesHistory.isNotEmpty) {
-      final currentSales = salesHistory.first;
-      return (currentSales * (1 + (forecastGrowth / 100))).round();
-    }
-    return 100 + (forecastGrowth.round());
-  }
-
-  int _calculateDemandScore(
-      double engagement, int views, int likes, int stock, double rating) {
-    double score = 0;
-
-    // Engagement Score (35% weight) - Max 2000 engagement
-    score += (engagement / 2000).clamp(0, 1) * 35;
-
-    // Conversion Rate (25% weight)
-    double conversionRate = views > 0 ? (likes / views) : 0;
-    score += conversionRate.clamp(0, 1) * 25;
-
-    // Stock Score (20% weight) - Lower stock = higher demand
-    double stockScore =
-        stock < 10 ? 1 : (stock < 30 ? 0.7 : (stock < 100 ? 0.4 : 0.2));
-    score += stockScore * 20;
-
-    // Rating Score (20% weight)
-    score += (rating / 5).clamp(0, 1) * 20;
-
-    return score.round().clamp(0, 100);
-  }
-
-  String _getDemandLevel(int score) {
-    if (score >= 80) return 'VERY HIGH';
-    if (score >= 60) return 'HIGH';
-    if (score >= 40) return 'MEDIUM';
-    if (score >= 20) return 'LOW';
-    return 'CRITICAL';
-  }
-
-  Color _getDemandColor(int score) {
-    if (score >= 80) return Colors.deepPurple;
-    if (score >= 60) return Colors.green;
-    if (score >= 40) return const Color(0xFF59F797);
-    if (score >= 20) return Colors.orange;
-    return Colors.red;
-  }
-
-  List<Recommendation> _generateRecommendations(
-    ProductModel product,
-    int demandScore,
-    double engagementScore,
-    int stock,
-    int views,
-    int likes,
-    double rating,
-    double price,
-  ) {
-    final recommendations = <Recommendation>[];
-
-    // Stock Recommendations
-    if (demandScore >= 60 && stock < 30) {
-      recommendations.add(Recommendation(
-        title: '📦 Increase Stock',
-        message: 'High demand detected with only $stock units left',
-        action: 'Order ${(50 - stock).clamp(20, 100)} more units immediately',
-        priority: 'HIGH',
-        icon: Icons.inventory,
-      ));
-    } else if (stock > 100 && demandScore < 40) {
-      recommendations.add(Recommendation(
-        title: '🏷️ Reduce Stock',
-        message: 'Low demand with excess stock ($stock units)',
-        action: 'Run a promotion or discount to clear inventory',
-        priority: 'MEDIUM',
-        icon: Icons.local_offer,
-      ));
-    }
-
-    // Engagement Recommendations
-    if (engagementScore < 300) {
-      recommendations.add(Recommendation(
-        title: '📢 Improve Visibility',
-        message: 'Low customer engagement detected',
-        action: 'Run social media campaign or improve product images',
-        priority: 'HIGH',
-        icon: Icons.visibility,
-      ));
-    } else if (engagementScore > 1000) {
-      recommendations.add(Recommendation(
-        title: '🚀 Expand Product Line',
-        message: 'Excellent engagement! Your product is trending',
-        action: 'Consider adding variations, bundles, or accessories',
-        priority: 'MEDIUM',
-        icon: Icons.trending_up,
-      ));
-    }
-
-    // Rating Recommendations
-    if (rating < 3.0 && product.comments > 5) {
-      recommendations.add(Recommendation(
-        title: '⭐ Quality Improvement',
-        message:
-            'Customer feedback indicates quality issues (${rating.toStringAsFixed(1)}⭐)',
-        action: 'Review customer comments and make product improvements',
-        priority: 'HIGH',
-        icon: Icons.star,
-      ));
-    } else if (rating > 4.5 && product.comments > 10) {
-      recommendations.add(Recommendation(
-        title: '✨ Highlight Success',
-        message: 'Excellent customer satisfaction',
-        action: 'Feature as "Best Seller" and showcase testimonials',
-        priority: 'LOW',
-        icon: Icons.emoji_events,
-      ));
-    }
-
-    // Conversion Rate Recommendations
-    final conversionRate = views > 0 ? (likes / views) * 100 : 0;
-    if (views > 200 && conversionRate < 10) {
-      recommendations.add(Recommendation(
-        title: '🎯 Optimize Listing',
-        message:
-            'High views (${views.toInt()}) but low conversion rate (${conversionRate.toInt()}%)',
-        action: 'Improve product description, images, and pricing strategy',
-        priority: 'MEDIUM',
-        icon: Icons.tune,
-      ));
-    }
-
-    // Price Recommendations
-    if (price > 200 && engagementScore < 200) {
-      recommendations.add(Recommendation(
-        title: '💰 Review Pricing',
-        message: 'High price but low engagement',
-        action: 'Consider price reduction or bundle offers',
-        priority: 'LOW',
-        icon: Icons.attach_money,
-      ));
-    } else if (price < 20 && engagementScore > 800) {
-      recommendations.add(Recommendation(
-        title: '💎 Increase Price',
-        message: 'High demand with low price point',
-        action: 'Consider increasing price by 10-20% to maximize profit',
-        priority: 'LOW',
-        icon: Icons.trending_up,
-      ));
-    }
-
-    // Add default recommendation if none
-    if (recommendations.isEmpty) {
-      recommendations.add(Recommendation(
-        title: '✅ Maintain Performance',
-        message: 'Your product is performing well',
-        action: 'Continue monitoring and engaging with customers',
-        priority: 'LOW',
-        icon: Icons.check_circle,
-      ));
-    }
-
-    // Sort by priority (HIGH > MEDIUM > LOW)
-    recommendations.sort((a, b) {
-      final priorityOrder = {'HIGH': 3, 'MEDIUM': 2, 'LOW': 1};
-      return priorityOrder[b.priority]!.compareTo(priorityOrder[a.priority]!);
-    });
-
-    return recommendations;
-  }
-
-  Future<List<double>> _getProductSalesHistory(String productId) async {
-    final List<double> history = [];
-
-    try {
-      final ordersSnapshot = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('productId', isEqualTo: productId)
-          .orderBy('createdAt', descending: true)
-          .limit(8)
-          .get();
-
-      if (ordersSnapshot.docs.isNotEmpty) {
-        for (var doc in ordersSnapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final amount = (data['totalAmount'] ?? 0).toDouble();
-          history.add(amount);
-        }
-        return history;
-      }
-    } catch (e) {
-      // No orders collection
-    }
-
-    // Generate sample sales history based on engagement score
-    final product = _products.firstWhere((p) => p.id == productId,
-        orElse: () => _products.first);
-    final baseSales = 50 + (product.engagementScore / 100).round();
-
-    for (int i = 0; i < 8; i++) {
-      final weekSales = baseSales + (i * 3) + (product.likes % 30);
-      history.add(weekSales.toDouble());
-    }
-    history.sort((a, b) => b.compareTo(a));
-
-    return history;
+    // Sort by performance
+    _marketTrends.sort((a, b) =>
+        (b['totalRevenue'] as double).compareTo(a['totalRevenue'] as double));
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Container(
-        color: Colors.grey[50],
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Analyzing each product...', style: TextStyle(fontSize: 12)),
-              SizedBox(height: 8),
-              Text('AI is generating predictions',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
-            ],
-          ),
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading product analysis...', style: TextStyle(fontSize: 12)),
+          ],
         ),
       );
     }
 
     if (_products.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.analytics, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No products to analyze',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text('Add products to see analysis',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    final selectedProduct = _products.firstWhere(
+      (p) => p.id == _selectedProductId,
+      orElse: () => _products.first,
+    );
+    final stats = _productStats[_selectedProductId] ?? {};
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Product Analysis',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF59F797),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        actions: [
+          // Product Selector
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: DropdownButton<String>(
+              value: _selectedProductId,
+              dropdownColor: Colors.white,
+              style: const TextStyle(color: Colors.white),
+              underline: const SizedBox.shrink(),
+              items: _products.map((product) {
+                return DropdownMenuItem(
+                  value: product.id,
+                  child: SizedBox(
+                    width: 120,
+                    child: Text(
+                      product.productName,
+                      style:
+                          const TextStyle(color: Colors.black87, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedProductId = value;
+                    _generateSalesData();
+                  });
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Overview Card
+            _buildProductOverview(selectedProduct, stats),
+            const SizedBox(height: 16),
+
+            // Timeframe Selector
+            _buildTimeframeSelector(),
+            const SizedBox(height: 16),
+
+            // Sales Chart
+            _buildSalesChart(selectedProduct),
+            const SizedBox(height: 16),
+
+            // Key Metrics
+            _buildKeyMetrics(stats),
+            const SizedBox(height: 16),
+
+            // Market Trends
+            const Text('Market Trends',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildMarketTrends(),
+
+            const SizedBox(height: 16),
+
+            // Performance Summary
+            _buildPerformanceSummary(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductOverview(
+      ProductModel product, Map<String, dynamic> stats) {
+    final totalSold = stats['totalSold'] ?? 0;
+    final totalRevenue = stats['totalRevenue'] ?? 0.0;
+    final totalOrders = stats['totalOrders'] ?? 0;
+    final performanceLevel = stats['performanceLevel'] ?? 'LOW';
+    final demandLevel = stats['demandLevel'] ?? 'LOW';
+
+    Color getPerformanceColor(String level) {
+      switch (level) {
+        case 'HIGH':
+          return Colors.green;
+        case 'MEDIUM':
+          return Colors.orange;
+        default:
+          return Colors.red;
+      }
+    }
+
+    Color getDemandColor(String level) {
+      switch (level) {
+        case 'VERY HIGH':
+          return Colors.deepPurple;
+        case 'HIGH':
+          return Colors.green;
+        case 'MEDIUM':
+          return Colors.orange;
+        default:
+          return Colors.red;
+      }
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Product Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: product.imageUrl != null
+                      ? Image.network(
+                          product.imageUrl!,
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                            width: 70,
+                            height: 70,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image, size: 35),
+                          ),
+                        )
+                      : Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.shopping_bag, size: 35),
+                        ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.productName,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.category.displayName,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: getPerformanceColor(performanceLevel)
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  performanceLevel == 'HIGH'
+                                      ? Icons.trending_up
+                                      : performanceLevel == 'MEDIUM'
+                                          ? Icons.trending_flat
+                                          : Icons.trending_down,
+                                  size: 12,
+                                  color: getPerformanceColor(performanceLevel),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  performanceLevel,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        getPerformanceColor(performanceLevel),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color:
+                                  getDemandColor(demandLevel).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Demand: $demandLevel',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: getDemandColor(demandLevel),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildOverviewMetric('Units Sold', totalSold.toString(),
+                    Icons.shopping_bag, Colors.blue),
+                _buildOverviewMetric(
+                    'Revenue',
+                    'TZS ${totalRevenue.toStringAsFixed(0)}',
+                    Icons.attach_money,
+                    const Color(0xFF59F797)),
+                _buildOverviewMetric('Orders', totalOrders.toString(),
+                    Icons.receipt, Colors.orange),
+                _buildOverviewMetric(
+                    'Avg Order',
+                    totalOrders > 0
+                        ? 'TZS ${(totalRevenue / totalOrders).toStringAsFixed(0)}'
+                        : 'TZS 0',
+                    Icons.trending_up,
+                    Colors.purple),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewMetric(
+      String title, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+              fontSize: 13, fontWeight: FontWeight.bold, color: color),
+        ),
+        Text(
+          title,
+          style: TextStyle(fontSize: 8, color: Colors.grey[500]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeframeSelector() {
+    return SizedBox(
+      height: 35,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _timeframes.length,
+        itemBuilder: (context, index) {
+          final timeframe = _timeframes[index];
+          final isSelected = _selectedTimeframe == timeframe.toLowerCase();
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(timeframe, style: TextStyle(fontSize: 11)),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedTimeframe = timeframe.toLowerCase();
+                  _generateSalesData();
+                });
+              },
+              backgroundColor: Colors.grey[200],
+              selectedColor: const Color(0xFF59F797).withOpacity(0.2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSalesChart(ProductModel product) {
+    if (_salesData.isEmpty) {
       return Container(
-        color: Colors.grey[50],
-        child: Center(
+        height: 200,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.auto_awesome, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No products to analyze',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Add products to get AI predictions for each product',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              ),
+              Icon(Icons.show_chart, size: 48, color: Colors.grey),
+              SizedBox(height: 8),
+              Text('No sales data available',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ),
       );
     }
 
-    final currentPrediction = _predictions[_selectedProductIndex];
-    final currentProduct = _products[_selectedProductIndex];
+    final maxAmount = _salesData.fold<double>(0, (max, item) {
+      return item['amount'] > max ? item['amount'] : max;
+    });
+
+    final step = maxAmount > 0 ? (maxAmount / 5).ceil() : 1;
 
     return Container(
-      color: Colors.grey[50],
-      child: Column(
-        children: [
-          // Product Selector Bar
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            color: Colors.white,
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 85,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: _products.length,
-                    itemBuilder: (context, index) {
-                      final product = _products[index];
-                      final prediction = _predictions[index];
-                      final isSelected = _selectedProductIndex == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedProductIndex = index;
-                          });
-                        },
-                        child: Container(
-                          width: 100,
-                          margin: const EdgeInsets.only(right: 10),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF59F797).withOpacity(0.1)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? const Color(0xFF59F797)
-                                  : Colors.grey[200]!,
-                              width: isSelected ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Product Image or Icon
-                              product.imageUrl != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        product.imageUrl!,
-                                        height: 40,
-                                        width: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                          height: 40,
-                                          width: 40,
-                                          color: Colors.grey[200],
-                                          child:
-                                              const Icon(Icons.image, size: 20),
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      height: 40,
-                                      width: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.shopping_bag,
-                                          size: 20, color: Colors.grey),
-                                    ),
-                              const SizedBox(height: 6),
-                              Text(
-                                product.productName.length > 12
-                                    ? '${product.productName.substring(0, 10)}...'
-                                    : product.productName,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isSelected
-                                      ? const Color(0xFF59F797)
-                                      : Colors.black87,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              // Demand indicator
-                              Container(
-                                margin: const EdgeInsets.only(top: 2),
-                                width: 30,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: prediction.demandColor,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+      height: 200,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) {
+              return FlLine(
+                color: Colors.grey[300]!,
+                strokeWidth: 0.5,
+              );
+            },
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    'TZS ${value.toInt()}',
+                    style: const TextStyle(fontSize: 8),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index >= 0 && index < _salesData.length) {
+                    // Show fewer labels to avoid clutter
+                    if (index % 5 == 0 || index == _salesData.length - 1) {
+                      return Text(
+                        _salesData[index]['label'],
+                        style: const TextStyle(fontSize: 8),
                       );
-                    },
-                  ),
-                ),
-              ],
+                    }
+                  }
+                  return const Text('');
+                },
+              ),
             ),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
-
-          // Predictions Content
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product Header Card
-                  _buildProductHeader(currentProduct, currentPrediction),
-                  const SizedBox(height: 16),
-
-                  // Key Metrics Row
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildSalesForecastCard(currentPrediction)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildDemandScoreCard(currentPrediction)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Predicted Sales Card
-                  _buildPredictedSalesCard(currentPrediction),
-                  const SizedBox(height: 16),
-
-                  // Engagement Metrics Card
-                  _buildEngagementMetricsCard(currentPrediction),
-                  const SizedBox(height: 16),
-
-                  // Recommendations Card
-                  _buildRecommendationsCard(currentPrediction),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductHeader(
-      ProductModel product, ProductPredictionData prediction) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey[200]!),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Product Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: product.imageUrl != null
-                  ? Image.network(
-                      product.imageUrl!,
-                      height: 70,
-                      width: 70,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        height: 70,
-                        width: 70,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image, size: 35),
-                      ),
-                    )
-                  : Container(
-                      height: 70,
-                      width: 70,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.shopping_bag, size: 35),
-                    ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.productName,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    prediction.productCategory,
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF59F797).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.attach_money,
-                                size: 12, color: Color(0xFF59F797)),
-                            const SizedBox(width: 2),
-                            Text(
-                              product.price.toStringAsFixed(2),
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF59F797)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.inventory,
-                                size: 12, color: Colors.grey),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Stock: ${prediction.stock}',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.star,
-                                size: 12, color: Colors.amber),
-                            const SizedBox(width: 2),
-                            Text(
-                              prediction.rating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.amber),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+          borderData: FlBorderData(show: true),
+          lineBarsData: [
+            LineChartBarData(
+              spots: _salesData.asMap().entries.map((entry) {
+                return FlSpot(entry.key.toDouble(), entry.value['amount']);
+              }).toList(),
+              isCurved: true,
+              color: const Color(0xFF59F797),
+              barWidth: 3,
+              dotData: const FlDotData(show: true),
+              belowBarData: BarAreaData(
+                show: true,
+                color: const Color(0xFF59F797).withOpacity(0.1),
               ),
             ),
           ],
@@ -665,101 +709,16 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
     );
   }
 
-  Widget _buildSalesForecastCard(ProductPredictionData prediction) {
-    final isPositive = prediction.forecastGrowth >= 0;
-    final growthText = isPositive
-        ? '+${prediction.forecastGrowth.round()}'
-        : '${prediction.forecastGrowth.round()}';
-    final growthColor = isPositive ? Colors.green : Colors.red;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            const Icon(Icons.trending_up, size: 24, color: Color(0xFF59F797)),
-            const SizedBox(height: 8),
-            Text(
-              'Sales Forecast',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$growthText%',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: growthColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'vs last week',
-              style: TextStyle(fontSize: 9, color: Colors.grey[400]),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildKeyMetrics(Map<String, dynamic> stats) {
+    final product = _products.firstWhere(
+      (p) => p.id == _selectedProductId,
+      orElse: () => _products.first,
     );
-  }
 
-  Widget _buildDemandScoreCard(ProductPredictionData prediction) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            const Icon(Icons.analytics, size: 24, color: Color(0xFF59F797)),
-            const SizedBox(height: 8),
-            Text(
-              'Demand Score',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${prediction.demandScore}%',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: prediction.demandColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: prediction.demandColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                prediction.demandLevel,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: prediction.demandColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPredictedSalesCard(ProductPredictionData prediction) {
-    final currentSales =
-        (prediction.predictedSales / (1 + prediction.forecastGrowth / 100))
-            .round();
+    final likes = product.likes;
+    final comments = product.comments;
+    final views = product.views;
+    final rating = product.rating;
 
     return Card(
       elevation: 0,
@@ -770,72 +729,23 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          children: [
-            const Text(
-              'Next Week Sales Prediction',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '\$${prediction.predictedSales}',
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF59F797),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Current: \$$currentSales',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEngagementMetricsCard(ProductPredictionData prediction) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Product Engagement',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildEngagementMetric('Views', prediction.views.toString(),
-                    Icons.visibility, Colors.blue),
-                _buildEngagementMetric('Likes', prediction.likes.toString(),
-                    Icons.favorite, Colors.red),
                 _buildEngagementMetric(
-                    'Comments',
-                    prediction.comments.toString(),
-                    Icons.comment,
-                    Colors.orange),
+                    'Views', views.toString(), Icons.visibility, Colors.blue),
                 _buildEngagementMetric(
-                    'Score',
-                    prediction.engagementScore.toString(),
-                    Icons.trending_up,
-                    const Color(0xFF59F797)),
+                    'Likes', likes.toString(), Icons.favorite, Colors.red),
+                _buildEngagementMetric('Comments', comments.toString(),
+                    Icons.comment, Colors.orange),
+                _buildEngagementMetric('Rating', rating.toStringAsFixed(1),
+                    Icons.star, Colors.amber),
               ],
             ),
           ],
@@ -848,11 +758,12 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
       String label, String value, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(height: 6),
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.bold, color: color),
         ),
         Text(
           label,
@@ -862,180 +773,228 @@ class _AIPredictionsScreenState extends State<AIPredictionsScreen> {
     );
   }
 
-  Widget _buildRecommendationsCard(ProductPredictionData prediction) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
+  Widget _buildMarketTrends() {
+    if (_marketTrends.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Text('No market trends available',
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ),
+      );
+    }
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: _marketTrends.take(5).map((trend) {
+            final isTop = _marketTrends.indexOf(trend) < 3;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: isTop
+                          ? const Color(0xFF59F797).withOpacity(0.1)
+                          : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${_marketTrends.indexOf(trend) + 1}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: isTop
+                              ? const Color(0xFF59F797)
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trend['productName'] as String,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '${trend['totalSales']} units • ${trend['totalRevenue'] > 0 ? 'TZS ${(trend['totalRevenue'] as double).toStringAsFixed(0)}' : 'No sales'}',
+                          style:
+                              TextStyle(fontSize: 9, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (trend['growth'] as double) > 0
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${(trend['growth'] as double).toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: (trend['growth'] as double) > 0
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceSummary() {
+    int high = 0, medium = 0, low = 0;
+    for (var stat in _productStats.values) {
+      final level = stat['performanceLevel'] as String;
+      if (level == 'HIGH')
+        high++;
+      else if (level == 'MEDIUM')
+        medium++;
+      else
+        low++;
+    }
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Icon(Icons.auto_awesome, color: Color(0xFF59F797), size: 18),
-            SizedBox(width: 8),
+            const Text(
+              'Performance Summary',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildPerformanceBar('High', high, Colors.green),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _buildPerformanceBar('Medium', medium, Colors.orange),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _buildPerformanceBar('Low', low, Colors.red),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLegendItem('High', Colors.green),
+                const SizedBox(width: 16),
+                _buildLegendItem('Medium', Colors.orange),
+                const SizedBox(width: 16),
+                _buildLegendItem('Low', Colors.red),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
-              'AI Recommendations',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              'Total Products: ${_products.length}',
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        ...prediction.recommendations.map((rec) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: rec.priority == 'HIGH'
-                        ? Colors.red.withOpacity(0.3)
-                        : (rec.priority == 'MEDIUM'
-                            ? Colors.orange.withOpacity(0.3)
-                            : Colors.grey.withOpacity(0.3)),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: rec.priority == 'HIGH'
-                              ? Colors.red.withOpacity(0.1)
-                              : (rec.priority == 'MEDIUM'
-                                  ? Colors.orange.withOpacity(0.1)
-                                  : Colors.blue.withOpacity(0.1)),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          rec.icon,
-                          size: 20,
-                          color: rec.priority == 'HIGH'
-                              ? Colors.red
-                              : (rec.priority == 'MEDIUM'
-                                  ? Colors.orange
-                                  : Colors.blue),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              rec.title,
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              rec.message,
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[700]),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF59F797).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                rec.action,
-                                style: const TextStyle(
-                                    fontSize: 10, color: Color(0xFF59F797)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: rec.priority == 'HIGH'
-                              ? Colors.red.withOpacity(0.1)
-                              : (rec.priority == 'MEDIUM'
-                                  ? Colors.orange.withOpacity(0.1)
-                                  : Colors.grey.withOpacity(0.1)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          rec.priority,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: rec.priority == 'HIGH'
-                                ? Colors.red
-                                : (rec.priority == 'MEDIUM'
-                                    ? Colors.orange
-                                    : Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceBar(String label, int count, Color color) {
+    final total = _products.length;
+    final percentage = total > 0 ? (count / total * 100) : 0;
+
+    return Column(
+      children: [
+        Container(
+          height: 60,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: percentage > 0 ? (percentage / 100 * 55) : 0,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
-            )),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          count.toString(),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
       ],
     );
   }
 }
 
-// Data Models
-class ProductPredictionData {
-  final String productId;
-  final String productName;
-  final String? productImage;
-  final String productCategory;
-  final double price;
-  final int stock;
-  final double rating;
-  final double forecastGrowth;
-  final int predictedSales;
-  final int demandScore;
-  final String demandLevel;
-  final Color demandColor;
-  final List<Recommendation> recommendations;
-  final int engagementScore;
-  final int views;
-  final int likes;
-  final int comments;
-
-  ProductPredictionData({
-    required this.productId,
-    required this.productName,
-    this.productImage,
-    required this.productCategory,
-    required this.price,
-    required this.stock,
-    required this.rating,
-    required this.forecastGrowth,
-    required this.predictedSales,
-    required this.demandScore,
-    required this.demandLevel,
-    required this.demandColor,
-    required this.recommendations,
-    required this.engagementScore,
-    required this.views,
-    required this.likes,
-    required this.comments,
-  });
-}
-
-class Recommendation {
-  final String title;
-  final String message;
-  final String action;
-  final String priority;
-  final IconData icon;
-
-  Recommendation({
-    required this.title,
-    required this.message,
-    required this.action,
-    required this.priority,
-    required this.icon,
-  });
+// Extension to get product stats
+extension ProductStats on ProductModel {
+  double get engagementScore => likes + comments + (rating * 100) + views;
+  String get performanceLevel => engagementScore > 1000
+      ? 'HIGH'
+      : (engagementScore > 500 ? 'MEDIUM' : 'LOW');
 }

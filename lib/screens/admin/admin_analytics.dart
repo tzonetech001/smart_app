@@ -1,463 +1,694 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/product_model.dart';
 
-class AdminAnalytics extends StatefulWidget {
-  const AdminAnalytics({super.key});
+class EntrepreneurAnalyticsScreen extends StatefulWidget {
+  const EntrepreneurAnalyticsScreen({super.key});
 
   @override
-  State<AdminAnalytics> createState() => _AdminAnalyticsState();
+  State<EntrepreneurAnalyticsScreen> createState() => _EntrepreneurAnalyticsScreenState();
 }
 
-class _AdminAnalyticsState extends State<AdminAnalytics> {
+class _EntrepreneurAnalyticsScreenState extends State<EntrepreneurAnalyticsScreen> {
+  final String? _userId = FirebaseAuth.instance.currentUser?.uid;
+  int _selectedTab = 0;
   String _selectedTimeframe = 'week';
-  
-  final List<Map<String, String>> _timeframes = [
-    {'label': 'Week', 'value': 'week'},
-    {'label': 'Month', 'value': 'month'},
-    {'label': 'Year', 'value': 'year'},
-  ];
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    if (_userId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please login to view analytics.')),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Analytics', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF59F797),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        actions: [
+          _buildTimeframeSelector(),
+        ],
+      ),
+      body: Column(
         children: [
-          // Timeframe Selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: _timeframes.map((tf) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: ChoiceChip(
-                  label: Text(tf['label']!, style: const TextStyle(fontSize: 12)),
-                  selected: _selectedTimeframe == tf['value'],
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedTimeframe = tf['value']!;
-                      });
-                    }
-                  },
-                  selectedColor: const Color(0xFF59F797).withOpacity(0.2),
-                ),
-              );
-            }).toList(),
+          // Tab Bar
+          _buildTabs(),
+          const SizedBox(height: 16),
+          // Content based on selected tab
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _selectedTab == 0
+                  ? _buildMarketTrends()
+                  : _selectedTab == 1
+                      ? _buildProductPerformance()
+                      : _buildRevenueAnalytics(),
+            ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // Revenue Chart
-          const Text(
-            'Revenue Overview',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: _buildRevenueChart(),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Category Distribution
-          const Text(
-            'Products by Category',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 250,
-            child: _buildCategoryChart(),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Top Performing Products
-          const Text(
-            'Top Performing Products',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildTopProducts(),
-          
-          const SizedBox(height: 24),
-          
-          // User Growth
-          const Text(
-            'User Growth',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: _buildUserGrowthChart(),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Key Metrics
-          const Text(
-            'Key Metrics',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildKeyMetrics(),
         ],
       ),
     );
   }
 
-  Widget _buildRevenueChart() {
-    final revenueData = _getRevenueData();
-    
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(show: true),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) {
-                    return Text('\$${value.toInt()}', style: const TextStyle(fontSize: 10));
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, meta) {
-                    return Text(revenueData[value.toInt()]['label'], style: const TextStyle(fontSize: 10));
-                  },
-                ),
-              ),
-              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
-            borderData: FlBorderData(show: true),
-            lineBarsData: [
-              LineChartBarData(
-                spots: revenueData.asMap().entries.map((entry) {
-                  return FlSpot(entry.key.toDouble(), entry.value['value']);
-                }).toList(),
-                isCurved: true,
-                color: const Color(0xFF59F797),
-                barWidth: 3,
-                dotData: FlDotData(show: true),
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: const Color(0xFF59F797).withOpacity(0.1),
-                ),
-              ),
-            ],
-          ),
+  Widget _buildTimeframeSelector() {
+    final timeframes = ['Week', 'Month', 'Year'];
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.calendar_today),
+      onSelected: (value) {
+        setState(() {
+          _selectedTimeframe = value.toLowerCase();
+        });
+      },
+      itemBuilder: (context) => timeframes.map((tf) => PopupMenuItem(
+        value: tf.toLowerCase(),
+        child: Text(tf, style: const TextStyle(fontSize: 12)),
+      )).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Text(_selectedTimeframe.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white)),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+          ],
         ),
       ),
     );
   }
 
-  List<Map<String, dynamic>> _getRevenueData() {
-    if (_selectedTimeframe == 'week') {
-      return [
-        {'label': 'Mon', 'value': 1250},
-        {'label': 'Tue', 'value': 1480},
-        {'label': 'Wed', 'value': 1320},
-        {'label': 'Thu', 'value': 1650},
-        {'label': 'Fri', 'value': 1890},
-        {'label': 'Sat', 'value': 2100},
-        {'label': 'Sun', 'value': 1950},
-      ];
-    } else if (_selectedTimeframe == 'month') {
-      return List.generate(4, (i) {
-        return {'label': 'Week ${i + 1}', 'value': 5000 + (i * 1500)};
-      });
-    } else {
-      return List.generate(12, (i) {
-        return {'label': '${i + 1}', 'value': 15000 + (i * 2000)};
-      });
-    }
-  }
-
-  Widget _buildCategoryChart() {
-    return FutureBuilder<Map<String, int>>(
-      future: _getCategoryDistribution(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        final data = snapshot.data!;
-        final total = data.values.fold(0, (a, b) => a + b);
-        
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 150,
-                  child: PieChart(
-                    PieChartData(
-                      sections: data.entries.map((entry) {
-                        final percentage = (entry.value / total) * 100;
-                        return PieChartSectionData(
-                          value: entry.value.toDouble(),
-                          title: '${percentage.toStringAsFixed(1)}%',
-                          color: _getCategoryColor(entry.key),
-                          radius: 60,
-                          titleStyle: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        );
-                      }).toList(),
+  Widget _buildTabs() {
+    final tabs = ['Market Trends', 'Product Performance', 'Revenue'];
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: tabs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final label = entry.value;
+          final isSelected = _selectedTab == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF59F797) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? Colors.white : Colors.black87,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: data.entries.map((entry) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: _getCategoryColor(entry.key),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text('${entry.key}: ${entry.value}', style: const TextStyle(fontSize: 10)),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        }).toList(),
+      ),
     );
   }
 
-  Future<Map<String, int>> _getCategoryDistribution() async {
-    final snapshot = await FirebaseFirestore.instance.collection('products').get();
-    final Map<String, int> distribution = {};
-    
-    for (var doc in snapshot.docs) {
-      final category = doc.get('category') as String;
-      distribution[category] = (distribution[category] ?? 0) + 1;
-    }
-    
-    return distribution;
-  }
-
-  Color _getCategoryColor(String category) {
-    final colors = [
-      const Color(0xFF59F797),
-      const Color(0xFF3BC77A),
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.blue,
-      Colors.teal,
-      Colors.purple,
-      Colors.pink,
-      Colors.indigo,
-    ];
-    
-    final index = category.hashCode.abs() % colors.length;
-    return colors[index];
-  }
-
-  Widget _buildTopProducts() {
+  // ==================== MARKET TRENDS ====================
+  Widget _buildMarketTrends() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('products')
-          .orderBy('likes', descending: true)
-          .limit(5)
+          .where('entrepreneurId', isEqualTo: _userId)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        
-        final products = snapshot.data!.docs;
-        
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFF59F797),
-                  child: Text('${index + 1}', style: const TextStyle(fontSize: 12)),
-                ),
-                title: Text(product.get('productName'), style: const TextStyle(fontSize: 12)),
-                subtitle: Text('${product.get('likes')} likes • ${product.get('views')} views', style: const TextStyle(fontSize: 10)),
-                trailing: Text(
-                  '\$${product.get('price').toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF59F797)),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
-  Widget _buildUserGrowthChart() {
-    final growthData = _getUserGrowthData();
-    
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: BarChart(
-          BarChartData(
-            gridData: FlGridData(show: true),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (value, meta) {
-                  return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
-                }),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, meta) {
-                    return Text(growthData[value.toInt()]['label'], style: const TextStyle(fontSize: 10));
-                  },
-                ),
-              ),
-              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
-            borderData: FlBorderData(show: true),
-            barGroups: growthData.asMap().entries.map((entry) {
-              return BarChartGroupData(
-                x: entry.key,
-                barRods: [
-                  BarChartRodData(
-                    toY: entry.value['value'].toDouble(),
-                    color: const Color(0xFF59F797),
-                    width: 20,
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
+        var products = snapshot.data!.docs
+            .map((doc) => ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
 
-  List<Map<String, dynamic>> _getUserGrowthData() {
-    if (_selectedTimeframe == 'week') {
-      return [
-        {'label': 'Mon', 'value': 5},
-        {'label': 'Tue', 'value': 8},
-        {'label': 'Wed', 'value': 12},
-        {'label': 'Thu', 'value': 7},
-        {'label': 'Fri', 'value': 15},
-        {'label': 'Sat', 'value': 20},
-        {'label': 'Sun', 'value': 18},
-      ];
-    } else if (_selectedTimeframe == 'month') {
-      return List.generate(4, (i) {
-        return {'label': 'Week ${i + 1}', 'value': 25 + (i * 10)};
-      });
-    } else {
-      return List.generate(12, (i) {
-        return {'label': '${i + 1}', 'value': 50 + (i * 15)};
-      });
-    }
-  }
+        // Sort by engagement score
+        products.sort((a, b) => b.engagementScore.compareTo(a.engagementScore));
 
-  Widget _buildKeyMetrics() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
-      builder: (context, userSnapshot) {
-        final totalUsers = userSnapshot.hasData ? userSnapshot.data!.docs.length : 0;
-        final entrepreneurs = userSnapshot.hasData 
-            ? userSnapshot.data!.docs.where((d) => d.get('role') == 'entrepreneur').length
-            : 0;
-        
-        return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('products').snapshots(),
-          builder: (context, productSnapshot) {
-            final totalProducts = productSnapshot.hasData ? productSnapshot.data!.docs.length : 0;
-            final totalLikes = productSnapshot.hasData
-                ? productSnapshot.data!.docs.fold<int>(0, (sum, doc) {
-                    final likes = doc.get('likes');
-                    return sum + (likes is int ? likes : (likes is num ? likes.toInt() : 0));
-                  })
-                : 0;
-            
-            return GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.5,
-              ),
+        if (products.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildMetricCard('Total Users', totalUsers.toString(), Icons.people, const Color(0xFF59F797)),
-                _buildMetricCard('Entrepreneurs', entrepreneurs.toString(), Icons.business, const Color(0xFF59F797)),
-                _buildMetricCard('Total Products', totalProducts.toString(), Icons.inventory, const Color(0xFF59F797)),
-                _buildMetricCard('Total Likes', totalLikes.toString(), Icons.favorite, Colors.red),
+                Icon(Icons.analytics, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No products to analyze.', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
-            );
-          },
+            ),
+          );
+        }
+
+        final topProducts = products.take(5).toList();
+        final totalEngagement = products.fold<double>(0, (sum, p) => sum + p.engagementScore);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Market Summary
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey[200]!),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildMarketMetric('Total Products', products.length.toString(), Icons.inventory),
+                    ),
+                    Expanded(
+                      child: _buildMarketMetric('Total Engagement', totalEngagement.round().toString(), Icons.trending_up),
+                    ),
+                    Expanded(
+                      child: _buildMarketMetric('Top Product', topProducts.isNotEmpty ? topProducts.first.productName : 'N/A', Icons.leaderboard),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Trending Products
+            const Text('Trending Products', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...topProducts.map((product) => _buildTrendingProductCard(product, topProducts.indexOf(product))),
+
+            const SizedBox(height: 16),
+
+            // Market Trends Chart
+            const Text('Market Trends', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Container(
+              height: 160,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: LineChart(
+                LineChartData(
+                  gridData: const FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 30,
+                        getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 8)),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (v, m) {
+                          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                          if (v.toInt() >= 0 && v.toInt() < days.length) {
+                            return Text(days[v.toInt()], style: const TextStyle(fontSize: 8));
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: true),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: List.generate(7, (i) => FlSpot(i.toDouble(), 100 + i * 15 + (i % 3) * 10)),
+                      isCurved: true,
+                      color: const Color(0xFF59F797),
+                      barWidth: 2,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(show: true, color: const Color(0xFF59F797).withOpacity(0.1)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+  Widget _buildMarketMetric(String title, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF59F797)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildTrendingProductCard(ProductModel product, int rank) {
+    final isTop = rank < 3;
+    final color = isTop ? const Color(0xFF59F797) : Colors.grey;
+
     return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            Icon(icon, size: 28, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isTop ? const Color(0xFF59F797).withOpacity(0.1) : Colors.grey[200],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(
+                child: Text(
+                  '${rank + 1}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isTop ? const Color(0xFF59F797) : Colors.grey[600],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-              textAlign: TextAlign.center,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.productName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text('${product.likes} likes • ${product.views} views', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${(product.engagementScore / 1000).toStringAsFixed(1)}K',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // ==================== PRODUCT PERFORMANCE ====================
+  Widget _buildProductPerformance() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('entrepreneurId', isEqualTo: _userId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var products = snapshot.data!.docs
+            .map((doc) => ProductModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
+
+        if (products.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.analytics, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No products to evaluate.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+
+        // Calculate performance levels
+        int high = 0, medium = 0, low = 0;
+        for (var p in products) {
+          if (p.engagementScore > 1000) high++;
+          else if (p.engagementScore > 400) medium++;
+          else low++;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Performance Summary
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey[200]!),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildPerformanceMetric('High', high.toString(), Icons.trending_up, Colors.green),
+                    ),
+                    Expanded(
+                      child: _buildPerformanceMetric('Medium', medium.toString(), Icons.trending_flat, Colors.orange),
+                    ),
+                    Expanded(
+                      child: _buildPerformanceMetric('Low', low.toString(), Icons.trending_down, Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Performance Distribution Chart
+            const Text('Performance Distribution', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Container(
+              height: 120,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: high,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Center(
+                        child: Text(
+                          high > 0 ? '$high' : '',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: medium,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Center(
+                        child: Text(
+                          medium > 0 ? '$medium' : '',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: low,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Center(
+                        child: Text(
+                          low > 0 ? '$low' : '',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLegendItem('High', Colors.green),
+                const SizedBox(width: 16),
+                _buildLegendItem('Medium', Colors.orange),
+                const SizedBox(width: 16),
+                _buildLegendItem('Low', Colors.red),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Individual Product Performance
+            const Text('Product Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...products.map((product) => _buildProductPerformanceCard(product)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPerformanceMetric(String title, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+        Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildProductPerformanceCard(ProductModel product) {
+    final performanceLevel = product.performanceLevel;
+    final color = performanceLevel == 'HIGH PERFORMANCE'
+        ? Colors.green
+        : (performanceLevel == 'MEDIUM PERFORMANCE' ? Colors.orange : Colors.red);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                performanceLevel == 'HIGH PERFORMANCE' ? Icons.emoji_events : Icons.trending_up,
+                color: color,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.productName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  Row(
+                    children: [
+                      Text('Score: ${product.engagementScore.round()}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          performanceLevel == 'HIGH PERFORMANCE'
+                              ? '🔥 High'
+                              : performanceLevel == 'MEDIUM PERFORMANCE'
+                                  ? '📊 Medium'
+                                  : '📉 Low',
+                          style: TextStyle(fontSize: 9, color: color),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Text('${product.likes} ❤️', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== REVENUE ANALYTICS ====================
+  Widget _buildRevenueAnalytics() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('entrepreneurId', isEqualTo: _userId)
+          .where('status', isEqualTo: 'delivered')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final orders = snapshot.data!.docs;
+        double totalRevenue = 0;
+        int totalOrders = orders.length;
+        for (var order in orders) {
+          totalRevenue += (order.get('totalAmount') ?? 0).toDouble();
+        }
+        final avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Revenue Summary
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey[200]!),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildRevenueMetric('Total Revenue', 'TZS ${totalRevenue.toStringAsFixed(0)}', Icons.attach_money),
+                    ),
+                    Expanded(
+                      child: _buildRevenueMetric('Total Orders', totalOrders.toString(), Icons.shopping_bag),
+                    ),
+                    Expanded(
+                      child: _buildRevenueMetric('Avg Order', 'TZS ${avgOrderValue.toStringAsFixed(0)}', Icons.trending_up),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Revenue Chart
+            const Text('Revenue Trend', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Container(
+              height: 160,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: BarChart(
+                BarChartData(
+                  gridData: const FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (v, m) => Text('TZS ${v.toInt()}', style: const TextStyle(fontSize: 8)),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (v, m) {
+                          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                          if (v.toInt() >= 0 && v.toInt() < days.length) {
+                            return Text(days[v.toInt()], style: const TextStyle(fontSize: 8));
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: true),
+                  barGroups: List.generate(7, (i) {
+                    return BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: 1000 + i * 500 + (i % 3) * 200,
+                          color: const Color(0xFF59F797),
+                          width: 16,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRevenueMetric(String title, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF59F797)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
     );
   }
 }

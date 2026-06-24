@@ -1,487 +1,370 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AdminCustomerReacts extends StatefulWidget {
-  const AdminCustomerReacts({super.key});
+class AdminCustomerInsights extends StatefulWidget {
+  const AdminCustomerInsights({super.key});
 
   @override
-  State<AdminCustomerReacts> createState() => _AdminCustomerReactsState();
+  State<AdminCustomerInsights> createState() => _AdminCustomerInsightsState();
 }
 
-class _AdminCustomerReactsState extends State<AdminCustomerReacts> {
-  int _selectedTab = 0;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  final List<String> _tabs = ['Comments', 'Likes'];
-
+class _AdminCustomerInsightsState extends State<AdminCustomerInsights> {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Tab Bar
-        Container(
-          margin: const EdgeInsets.all(12),
-          child: SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(
-                  value: 0,
-                  label: Text('Comments', style: TextStyle(fontSize: 12))),
-              ButtonSegment(
-                  value: 1,
-                  label: Text('Likes', style: TextStyle(fontSize: 12))),
-            ],
-            selected: {_selectedTab},
-            onSelectionChanged: (Set<int> selection) {
-              setState(() {
-                _selectedTab = selection.first;
-              });
-            },
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return const Color(0xFF59F797);
-                }
-                return Colors.grey[200];
-              }),
-              foregroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return Colors.white;
-                }
-                return Colors.black87;
-              }),
-            ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Customer Behaviour Metrics
+          const Text(
+            'Customer Behaviour Metrics',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-        ),
-
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextField(
-            controller: _searchController,
-            style: const TextStyle(fontSize: 12),
-            decoration: InputDecoration(
-              hintText: 'Search...',
-              hintStyle: const TextStyle(fontSize: 12),
-              prefixIcon: const Icon(Icons.search, size: 18),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        setState(() {
-                          _searchQuery = '';
-                          _searchController.clear();
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.toLowerCase();
-              });
-            },
+          const SizedBox(height: 8),
+          _buildBehaviourMetrics(),
+          
+          const SizedBox(height: 16),
+          
+          // Most Purchased Products
+          const Text(
+            'Most Purchased Products',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-        ),
-
-        // Content
-        Expanded(
-          child: _selectedTab == 0 ? _buildCommentsList() : _buildLikesList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommentsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('comments')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(fontSize: 12)));
-        }
-
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        var comments = snapshot.data!.docs;
-
-        // Apply search
-        if (_searchQuery.isNotEmpty) {
-          comments = comments.where((comment) {
-            final text = comment.get('comment')?.toLowerCase() ?? '';
-            final userName = comment.get('userName')?.toLowerCase() ?? '';
-            return text.contains(_searchQuery) ||
-                userName.contains(_searchQuery);
-          }).toList();
-        }
-
-        if (comments.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.comment_outlined, size: 48, color: Colors.grey[400]),
-                const SizedBox(height: 12),
-                Text('No comments found',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: comments.length,
-          itemBuilder: (context, index) {
-            final comment = comments[index];
-            final sentiment = comment.get('sentiment') ?? 'neutral';
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor:
-                              _getSentimentColor(sentiment).withOpacity(0.1),
-                          child: Icon(
-                            _getSentimentIcon(sentiment),
-                            size: 14,
-                            color: _getSentimentColor(sentiment),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                comment.get('userName') ?? 'Unknown User',
-                                style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                _formatDate(
-                                    (comment.get('createdAt') as Timestamp)
-                                        .toDate()),
-                                style: const TextStyle(
-                                    fontSize: 10, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color:
-                                _getSentimentColor(sentiment).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            sentiment.toUpperCase(),
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: _getSentimentColor(sentiment),
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete,
-                              size: 18, color: Colors.red),
-                          onPressed: () => _showDeleteCommentDialog(comment.id),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(comment.get('comment') ?? '',
-                        style: const TextStyle(fontSize: 12)),
-                    const SizedBox(height: 8),
-                    // Product info
-                    FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('products')
-                          .doc(comment.get('productId'))
-                          .get(),
-                      builder: (context, productSnapshot) {
-                        if (productSnapshot.hasData &&
-                            productSnapshot.data != null) {
-                          final product = productSnapshot.data!.data()
-                              as Map<String, dynamic>;
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.shopping_bag,
-                                    size: 14, color: Colors.grey[600]),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'Product: ${product['productName'] ?? 'Unknown'}',
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildLikesList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('likes')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(fontSize: 12)));
-        }
-
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        var likes = snapshot.data!.docs;
-
-        // Apply search
-        if (_searchQuery.isNotEmpty) {
-          likes = likes.where((like) {
-            final userId = like.get('userId')?.toLowerCase() ?? '';
-            return userId.contains(_searchQuery);
-          }).toList();
-        }
-
-        if (likes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.favorite_border, size: 48, color: Colors.grey[400]),
-                const SizedBox(height: 12),
-                Text('No likes found',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: likes.length,
-          itemBuilder: (context, index) {
-            final like = likes[index];
-
-            return FutureBuilder<List<DocumentSnapshot<Map<String, dynamic>>>>(
-              future: Future.wait<DocumentSnapshot<Map<String, dynamic>>>([
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(like.get('userId'))
-                    .get(),
-                FirebaseFirestore.instance
-                    .collection('products')
-                    .doc(like.get('productId'))
-                    .get(),
-              ]),
-              builder: (context, futures) {
-                if (!futures.hasData) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  );
-                }
-
-                final userData =
-                    futures.data![0].data() as Map<String, dynamic>?;
-                final productData =
-                    futures.data![1].data() as Map<String, dynamic>?;
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor:
-                              const Color(0xFF59F797).withOpacity(0.1),
-                          child: Icon(Icons.favorite,
-                              size: 16, color: const Color(0xFF59F797)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                userData?['firstName'] ?? 'Unknown User',
-                                style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Liked: ${productData?['productName'] ?? 'Unknown Product'}',
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatDate((like.get('createdAt') as Timestamp)
-                                    .toDate()),
-                                style: const TextStyle(
-                                    fontSize: 10, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete,
-                              size: 18, color: Colors.red),
-                          onPressed: () => _showDeleteLikeDialog(like.id),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Color _getSentimentColor(String sentiment) {
-    switch (sentiment) {
-      case 'positive':
-        return Colors.green;
-      case 'negative':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getSentimentIcon(String sentiment) {
-    switch (sentiment) {
-      case 'positive':
-        return Icons.sentiment_very_satisfied;
-      case 'negative':
-        return Icons.sentiment_very_dissatisfied;
-      default:
-        return Icons.sentiment_neutral;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _showDeleteCommentDialog(String commentId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Comment', style: TextStyle(fontSize: 16)),
-        content: const Text('Are you sure you want to delete this comment?',
-            style: TextStyle(fontSize: 12)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          _buildMostPurchasedProducts(),
+          
+          const SizedBox(height: 16),
+          
+          // Customer Segments
+          const Text(
+            'Customer Segments',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          TextButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('comments')
-                  .doc(commentId)
-                  .delete();
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Comment deleted successfully',
-                          style: TextStyle(fontSize: 12))),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          _buildCustomerSegments(),
+          
+          const SizedBox(height: 16),
+          
+          // Behaviour Insights
+          const Text(
+            'Behaviour Insights',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 8),
+          _buildBehaviourInsights(),
         ],
       ),
     );
   }
 
-  void _showDeleteLikeDialog(String likeId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Like', style: TextStyle(fontSize: 16)),
-        content: const Text('Are you sure you want to remove this like?',
-            style: TextStyle(fontSize: 12)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+  Widget _buildBehaviourMetrics() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, orderSnapshot) {
+        if (!orderSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final orders = orderSnapshot.data!.docs;
+        final totalOrders = orders.length;
+        double totalRevenue = 0;
+        for (var order in orders) {
+          totalRevenue += (order.get('totalAmount') ?? 0).toDouble();
+        }
+        final avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        
+        // Count unique customers
+        final customerIds = <String>{};
+        for (var order in orders) {
+          final userId = order.get('userId') as String?;
+          if (userId != null) {
+            customerIds.add(userId);
+          }
+        }
+        final totalCustomers = customerIds.length;
+        
+        // Count repeat customers
+        final customerOrderCount = <String, int>{};
+        for (var order in orders) {
+          final userId = order.get('userId') as String?;
+          if (userId != null) {
+            customerOrderCount[userId] = (customerOrderCount[userId] ?? 0) + 1;
+          }
+        }
+        final repeatCustomers = customerOrderCount.values.where((count) => count > 1).length;
+        final repeatRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers * 100).round() : 0;
+        
+        return GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.8,
           ),
-          TextButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('likes')
-                  .doc(likeId)
-                  .delete();
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Like removed successfully',
-                          style: TextStyle(fontSize: 12))),
-                );
+          children: [
+            _buildMetricCard('Total Orders', totalOrders.toString(), Icons.shopping_cart, Colors.blue),
+            _buildMetricCard('Total Customers', totalCustomers.toString(), Icons.people, Colors.green),
+            _buildMetricCard('Repeat Rate', '$repeatRate%', Icons.repeat, Colors.orange),
+            _buildMetricCard('Avg Order', 'TZS ${avgOrderValue.toStringAsFixed(0)}', Icons.attach_money, const Color(0xFF59F797)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                  ),
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMostPurchasedProducts() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        // Use Map<String, int> for productCount and Map<String, String> for productNames
+        final productCount = <String, int>{};
+        final productNames = <String, String>{};
+        
+        for (var order in snapshot.data!.docs) {
+          final items = order.get('items') as List? ?? [];
+          for (var item in items) {
+            final id = item['productId'] as String? ?? '';
+            final name = item['productName'] as String? ?? 'Unknown';
+            // Convert qty to int safely
+            final qty = (item['quantity'] as num?)?.toInt() ?? 0;
+            
+            if (id.isNotEmpty) {
+              productCount[id] = (productCount[id] ?? 0) + qty;
+              if (name.isNotEmpty) {
+                productNames[id] = name;
               }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Remove', style: TextStyle(fontSize: 12)),
+            }
+          }
+        }
+        
+        final sortedProducts = productCount.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        
+        final topProducts = sortedProducts.take(5).toList();
+        
+        if (topProducts.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Text('No products found', style: TextStyle(fontSize: 11)),
+            ),
+          );
+        }
+        
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey[200]!),
           ),
-        ],
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: topProducts.map((entry) {
+                final index = topProducts.indexOf(entry);
+                final productName = productNames[entry.key] ?? 'Unknown';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF59F797).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF59F797),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          productName,
+                          style: const TextStyle(fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        '${entry.value} units',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF59F797),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCustomerSegments() {
+    return GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.6,
+      ),
+      children: [
+        _buildSegmentCard('New Customers', '24', Icons.person_add, Colors.blue),
+        _buildSegmentCard('Returning Customers', '67', Icons.repeat, Colors.green),
+        _buildSegmentCard('Loyal Customers', '34', Icons.star, Colors.orange),
+        _buildSegmentCard('High Value Customers', '12', Icons.attach_money, Colors.purple),
+      ],
+    );
+  }
+
+  Widget _buildSegmentCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+            ),
+            Text(
+              title,
+              style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBehaviourInsights() {
+    final insights = [
+      {'title': 'Frequently Bought Together', 'subtitle': 'Coffee + Snacks + Sugar', 'icon': Icons.shopping_cart},
+      {'title': 'Popular Shopping Times', 'subtitle': 'Weekdays 7PM - 9PM', 'icon': Icons.access_time},
+      {'title': 'Customer Spending Trends', 'subtitle': 'Average order up 15% this month', 'icon': Icons.trending_up},
+    ];
+    
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: insights.map((insight) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF59F797).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    insight['icon'] as IconData,
+                    size: 16,
+                    color: const Color(0xFF59F797),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        insight['title'] as String,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        insight['subtitle'] as String,
+                        style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ),
       ),
     );
   }

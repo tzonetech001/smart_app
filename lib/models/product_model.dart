@@ -55,6 +55,15 @@ class ProductModel {
   DateTime createdAt;
   bool isActive;
 
+  // New fields
+  String? brand;
+  String? sku;
+  int unitsSold;
+  double revenue;
+  bool isOnPromotion;
+  double? promotionPrice;
+  String? promotionDescription;
+
   ProductModel({
     required this.id,
     required this.productName,
@@ -71,10 +80,26 @@ class ProductModel {
     this.stock = 0,
     required this.createdAt,
     this.isActive = true,
+    this.brand,
+    this.sku,
+    this.unitsSold = 0,
+    this.revenue = 0.0,
+    this.isOnPromotion = false,
+    this.promotionPrice,
+    this.promotionDescription,
   });
 
   double get engagementScore => likes + comments + rating * 100 + views;
-  String get performanceLevel => engagementScore > 1000 ? 'HIGH PERFORMANCE' : 'LOW PERFORMANCE';
+
+  String get performanceLevel =>
+      engagementScore > 1000 ? 'HIGH PERFORMANCE' : 'LOW PERFORMANCE';
+
+  /// Demand level based on units sold and engagement score.
+  String get demandLevel {
+    if (unitsSold > 100 || engagementScore > 1000) return 'High Demand';
+    if (unitsSold > 30 || engagementScore > 400) return 'Moderate Demand';
+    return 'Low Demand';
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -92,6 +117,13 @@ class ProductModel {
       'stock': stock,
       'createdAt': createdAt,
       'isActive': isActive,
+      'brand': brand,
+      'sku': sku,
+      'unitsSold': unitsSold,
+      'revenue': revenue,
+      'isOnPromotion': isOnPromotion,
+      'promotionPrice': promotionPrice,
+      'promotionDescription': promotionDescription,
     };
   }
 
@@ -112,6 +144,15 @@ class ProductModel {
       stock: map['stock'] ?? 0,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isActive: map['isActive'] ?? true,
+      brand: map['brand'],
+      sku: map['sku'],
+      unitsSold: map['unitsSold'] ?? 0,
+      revenue: (map['revenue'] ?? 0).toDouble(),
+      isOnPromotion: map['isOnPromotion'] ?? false,
+      promotionPrice: map['promotionPrice'] != null
+          ? (map['promotionPrice'] as num).toDouble()
+          : null,
+      promotionDescription: map['promotionDescription'],
     );
   }
 

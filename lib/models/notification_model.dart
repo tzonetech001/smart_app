@@ -9,6 +9,8 @@ class NotificationModel {
   bool isRead;
   Map<String, dynamic>? data;
   DateTime createdAt;
+  String? productId;
+  String? orderId;
 
   NotificationModel({
     required this.id,
@@ -19,6 +21,8 @@ class NotificationModel {
     this.isRead = false,
     this.data,
     required this.createdAt,
+    this.productId,
+    this.orderId,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +34,8 @@ class NotificationModel {
       'isRead': isRead,
       'data': data,
       'createdAt': createdAt,
+      'productId': productId,
+      'orderId': orderId,
     };
   }
 
@@ -42,7 +48,10 @@ class NotificationModel {
       type: map['type'] ?? 'general',
       isRead: map['isRead'] ?? false,
       data: map['data'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt:
+          (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      productId: map['productId'],
+      orderId: map['orderId'],
     );
   }
 }

@@ -12,6 +12,9 @@ class UserModel {
   UserRole role;
   DateTime createdAt;
   String? profileImage;
+  String region;
+  String? district;
+  String? ward;
   bool isActive;
 
   UserModel({
@@ -25,6 +28,9 @@ class UserModel {
     required this.createdAt,
     this.profileImage,
     this.isActive = true,
+    this.region = 'Dar es Salaam',
+    this.district,
+    this.ward,
   });
 
   String get fullName => '$firstName $lastName';
@@ -41,6 +47,9 @@ class UserModel {
       'createdAt': createdAt,
       'profileImage': profileImage,
       'isActive': isActive,
+      'region': region,
+      'district': district,
+      'ward': ward,
     };
   }
 
@@ -56,6 +65,9 @@ class UserModel {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       profileImage: map['profileImage'],
       isActive: map['isActive'] ?? true,
+      region: map['region'] ?? 'Dar es Salaam',
+      district: map['district'],
+      ward: map['ward'],
     );
   }
 

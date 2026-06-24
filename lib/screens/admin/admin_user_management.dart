@@ -14,6 +14,7 @@ class AdminUserManagement extends StatefulWidget {
 
 class _AdminUserManagementState extends State<AdminUserManagement> {
   String _selectedFilter = 'all';
+  String _selectedStatus = 'all';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _currentAdminId;
@@ -75,7 +76,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                 ),
                 const SizedBox(height: 12),
 
-                // Filter Chips
+                // Filter Chips - Role
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -87,6 +88,21 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       _buildFilterChip('💼 Entrepreneurs', 'entrepreneur'),
                       const SizedBox(width: 8),
                       _buildFilterChip('👑 Admins', 'admin'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                // Filter Chips - Status
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildStatusChip('All Status', 'all'),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('✅ Active', 'active'),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('⛔ Suspended', 'suspended'),
                     ],
                   ),
                 ),
@@ -126,11 +142,19 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       doc.id, doc.data() as Map<String, dynamic>);
                 }).toList();
 
-                // Apply filter
+                // Apply role filter
                 if (_selectedFilter != 'all') {
                   users = users.where((user) {
                     return user.role.toString().split('.').last ==
                         _selectedFilter;
+                  }).toList();
+                }
+
+                // Apply status filter
+                if (_selectedStatus != 'all') {
+                  final isActive = _selectedStatus == 'active';
+                  users = users.where((user) {
+                    return user.isActive == isActive;
                   }).toList();
                 }
 
@@ -233,6 +257,24 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                                           ),
                                         ),
                                       ],
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: user.isActive 
+                                              ? Colors.green.withOpacity(0.1) 
+                                              : Colors.red.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          user.isActive ? 'Active' : 'Suspended',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold,
+                                            color: user.isActive ? Colors.green : Colors.red,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
@@ -246,20 +288,29 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
                                   const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: _getRoleColor(user.role).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _getRoleDisplayName(user.role),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: _getRoleColor(user.role),
-                                        fontWeight: FontWeight.bold,
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _getRoleColor(user.role).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          _getRoleDisplayName(user.role),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: _getRoleColor(user.role),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Registered: ${_formatDate(user.createdAt)}',
+                                        style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -269,6 +320,20 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                             if (!isCurrentAdmin)
                               Row(
                                 children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.visibility, size: 18, color: Colors.blue),
+                                    onPressed: () => _showUserProfile(user),
+                                    tooltip: 'View Profile',
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      user.isActive ? Icons.block : Icons.check_circle,
+                                      size: 18,
+                                      color: user.isActive ? Colors.orange : Colors.green,
+                                    ),
+                                    onPressed: () => _toggleUserStatus(user),
+                                    tooltip: user.isActive ? 'Suspend' : 'Activate',
+                                  ),
                                   IconButton(
                                     icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
                                     onPressed: () => _showEditUserInfoDialog(user),
@@ -331,6 +396,24 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
     );
   }
 
+  Widget _buildStatusChip(String label, String value) {
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: _selectedStatus == value,
+      onSelected: (selected) {
+        setState(() {
+          _selectedStatus = selected ? value : 'all';
+        });
+      },
+      backgroundColor: Colors.grey[200],
+      selectedColor: const Color(0xFF59F797).withOpacity(0.2),
+      labelStyle: TextStyle(
+        fontSize: 12,
+        color: _selectedStatus == value ? const Color(0xFF59F797) : Colors.black87,
+      ),
+    );
+  }
+
   String _getRoleDisplayName(UserRole role) {
     switch (role) {
       case UserRole.admin:
@@ -351,6 +434,10 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
       default:
         return Colors.blue;
     }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   void _showSuccessMessage(String message) {
@@ -387,6 +474,92 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
     );
   }
 
+  void _showUserProfile(UserModel user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('User Profile: ${user.fullName}', style: const TextStyle(fontSize: 16)),
+        content: Container(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileRow('Name', user.fullName),
+              _buildProfileRow('Email', user.email),
+              _buildProfileRow('Phone', user.phoneNumber),
+              _buildProfileRow('Role', _getRoleDisplayName(user.role)),
+              _buildProfileRow('Status', user.isActive ? 'Active' : 'Suspended'),
+              _buildProfileRow('Joined', _formatDate(user.createdAt)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleUserStatus(UserModel user) async {
+    final action = user.isActive ? 'suspend' : 'activate';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${user.isActive ? 'Suspend' : 'Activate'} User', style: const TextStyle(fontSize: 16)),
+        content: Text(
+          'Are you sure you want to ${user.isActive ? 'suspend' : 'activate'} ${user.fullName}?',
+          style: const TextStyle(fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.id)
+                  .update({'isActive': !user.isActive});
+              if (context.mounted) {
+                Navigator.pop(context);
+                _showSuccessMessage('User ${user.isActive ? 'suspended' : 'activated'} successfully');
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: user.isActive ? Colors.orange : Colors.green,
+            ),
+            child: Text(
+              user.isActive ? 'Suspend' : 'Activate',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddUserDialog() {
     final _formKey = GlobalKey<FormState>();
     final _firstNameController = TextEditingController();
@@ -394,6 +567,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
     final _emailController = TextEditingController();
     final _phoneController = TextEditingController();
     final _passwordController = TextEditingController();
+    final _locationController = TextEditingController();
     UserRole _selectedRole = UserRole.customer;
     bool _isLoading = false;
 
@@ -414,7 +588,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _firstNameController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'First Name',
+                        labelText: 'First Name *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -426,7 +600,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _lastNameController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Last Name',
+                        labelText: 'Last Name *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -438,7 +612,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _emailController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Email',
+                        labelText: 'Email *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -453,19 +627,31 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _phoneController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Phone Number',
+                        labelText: 'Phone Number *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                       keyboardType: TextInputType.phone,
+                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _locationController,
+                      style: const TextStyle(fontSize: 12),
+                      decoration: const InputDecoration(
+                        labelText: 'Location (Optional)',
+                        labelStyle: TextStyle(fontSize: 12),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _passwordController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'Password *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -479,7 +665,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       value: _selectedRole,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Role',
+                        labelText: 'Role *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -565,6 +751,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
     final _lastNameController = TextEditingController(text: user.lastName);
     final _phoneController = TextEditingController(text: user.phoneNumber);
     final _emailController = TextEditingController(text: user.email);
+    final _locationController = TextEditingController(text: '');
     UserRole _newRole = user.role;
     bool _isLoading = false;
 
@@ -585,7 +772,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _firstNameController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'First Name',
+                        labelText: 'First Name *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -597,7 +784,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _lastNameController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Last Name',
+                        labelText: 'Last Name *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -609,7 +796,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                       controller: _phoneController,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
-                        labelText: 'Phone Number',
+                        labelText: 'Phone Number *',
                         labelStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -620,7 +807,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                     TextFormField(
                       controller: _emailController,
                       style: const TextStyle(fontSize: 12),
-                      enabled: false, // Email cannot be changed
+                      enabled: false,
                       decoration: const InputDecoration(
                         labelText: 'Email (Cannot be changed)',
                         labelStyle: TextStyle(fontSize: 12),
@@ -628,6 +815,17 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         filled: true,
                         fillColor: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _locationController,
+                      style: const TextStyle(fontSize: 12),
+                      decoration: const InputDecoration(
+                        labelText: 'Location (Optional)',
+                        labelStyle: TextStyle(fontSize: 12),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -654,13 +852,7 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                           ),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() {
-                            _newRole = value;
-                          });
-                        }
-                      },
+                      onChanged: (value) => setDialogState(() => _newRole = value!),
                     ),
                   ],
                 ),
@@ -681,7 +873,6 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                           final authService =
                               Provider.of<AuthService>(context, listen: false);
                           
-                          // Update user info in Firestore
                           await FirebaseFirestore.instance
                               .collection('users')
                               .doc(user.id)
@@ -691,7 +882,6 @@ class _AdminUserManagementState extends State<AdminUserManagement> {
                             'phoneNumber': _phoneController.text.trim(),
                           });
                           
-                          // Update role if changed
                           if (_newRole != user.role) {
                             await authService.updateUserRole(user.id, _newRole);
                           }

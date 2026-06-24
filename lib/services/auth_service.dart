@@ -47,6 +47,8 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String phoneNumber,
     String? gender,
+    String? district,
+    String? ward,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -67,6 +69,9 @@ class AuthService extends ChangeNotifier {
         gender: gender,
         role: UserRole.customer,
         createdAt: DateTime.now(),
+        region: 'Dar es Salaam',
+        district: district,
+        ward: ward,
       );
 
       await _firestore.collection('users').doc(newUser.id).set(newUser.toMap());
