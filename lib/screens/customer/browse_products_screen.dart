@@ -6,13 +6,11 @@ import '../../widgets/product_card.dart';
 
 class BrowseProductsScreen extends StatefulWidget {
   final ProductCategory? initialCategory;
-
   const BrowseProductsScreen({super.key, this.initialCategory});
 
   @override
   State<BrowseProductsScreen> createState() => _BrowseProductsScreenState();
 }
-
 class _BrowseProductsScreenState extends State<BrowseProductsScreen> {
   ProductCategory? _selectedCategory;
   String _searchQuery = '';
@@ -37,7 +35,6 @@ class _BrowseProductsScreenState extends State<BrowseProductsScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Column(

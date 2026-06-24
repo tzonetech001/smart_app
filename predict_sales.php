@@ -14,7 +14,7 @@ if (!$data) {
 $products = $data['products'] ?? [];
 $salesHistory = $data['salesHistory'] ?? [];
 
-// Calculate average engagement
+// Calculate average engagement of data
 $totalEngagement = 0;
 foreach ($products as $product) {
     $totalEngagement += $product['engagementScore'] ?? 0;
