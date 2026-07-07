@@ -13,7 +13,6 @@ class CustomerNotificationsScreen extends StatefulWidget {
   @override
   State<CustomerNotificationsScreen> createState() => _CustomerNotificationsScreenState();
 }
-
 class _CustomerNotificationsScreenState extends State<CustomerNotificationsScreen> {
   final String? _userId = FirebaseAuth.instance.currentUser?.uid;
   String _selectedFilter = 'all'; // all | products | orders | payments
