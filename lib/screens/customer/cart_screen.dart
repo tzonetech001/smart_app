@@ -11,7 +11,6 @@ class CartScreen extends StatefulWidget {
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
-
 class _CartScreenState extends State<CartScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
