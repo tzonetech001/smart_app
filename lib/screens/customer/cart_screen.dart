@@ -82,6 +82,7 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  
   Future<void> _addRecommendedToCart(ProductModel recommendedProduct) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
@@ -217,7 +218,7 @@ class _CartScreenState extends State<CartScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 17),
                   const Text('Your shopping cart is empty', style: TextStyle(fontSize: 14, color: Colors.grey)),
                 ],
               ),
