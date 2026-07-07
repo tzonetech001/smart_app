@@ -54,7 +54,6 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _removeItem(String productId, int qty) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
-
     try {
       final productDoc = await FirebaseFirestore.instance
           .collection('products')
