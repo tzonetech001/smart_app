@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 shape: BoxShape.circle,
                 color: Colors.blueAccent.withValues(alpha: 0.1),
                 boxShadow: [
-                  BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.2), blurRadius: 100, spreadRadius: 50)
+                  BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.2), blurRadius: 99, spreadRadius: 50)
                 ],
               ),
             ),
